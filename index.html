@@ -5,253 +5,529 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Карта предприятий и патентов Челябинской области</title>
 
-  <!-- Яндекс.Карты. Для устойчивой работы на публичном сайте лучше добавить API-ключ: https://developer.tech.yandex.ru/ -->
+  <!-- Яндекс.Карты -->
   <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU"></script>
 
   <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #222; }
-    header { padding: 14px 20px; background: #1f4e79; color: #fff; }
-    header h1 { margin: 0 0 4px; font-size: 21px; }
-    header p { margin: 0; font-size: 14px; opacity: .9; }
-    .layout { display: grid; grid-template-columns: 360px 1fr; height: calc(100vh - 74px); }
-    .sidebar { padding: 14px; background: #fff; border-right: 1px solid #d9e0e7; overflow-y: auto; }
-    #map { width: 100%; height: 100%; }
-    .card { padding: 12px; margin-bottom: 12px; border: 1px solid #d9e0e7; border-radius: 10px; background: #fff; }
-    .card-title { display: block; margin-bottom: 8px; font-weight: 700; }
-    input[type="text"], select { width: 100%; padding: 9px; border: 1px solid #c7d0d9; border-radius: 8px; font-size: 14px; }
-    button { width: 100%; padding: 10px 12px; border: 0; border-radius: 8px; background: #1f4e79; color: white; font-weight: 700; cursor: pointer; margin-top: 8px; }
-    button:hover { background: #163a5b; }
-    .status { font-size: 14px; line-height: 1.45; white-space: pre-line; }
-    .hint { font-size: 13px; color: #5f6b76; line-height: 1.45; }
-    .list-item { padding: 10px 0; border-bottom: 1px solid #e7ecf1; font-size: 13px; cursor: pointer; }
-    .list-item:hover { background: #f7f9fb; }
-    .list-item strong { display: block; margin-bottom: 4px; }
-    .popup-title { font-weight: 700; margin-bottom: 6px; }
-    .popup-text { margin-bottom: 4px; font-size: 13px; }
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #222;
+    }
+
+    header {
+      padding: 14px 22px;
+      background: #1f4e79;
+      color: white;
+    }
+
+    header h1 {
+      margin: 0 0 4px;
+      font-size: 21px;
+    }
+
+    header p {
+      margin: 0;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      height: calc(100vh - 74px);
+    }
+
+    .sidebar {
+      padding: 14px;
+      background: #fff;
+      border-right: 1px solid #d9e0e7;
+      overflow-y: auto;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .card {
+      padding: 13px;
+      margin-bottom: 12px;
+      border: 1px solid #d9e0e7;
+      border-radius: 10px;
+      background: white;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    input,
+    select,
+    button {
+      width: 100%;
+      padding: 9px;
+      border: 1px solid #c7d0d9;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    button {
+      border: 0;
+      background: #1f4e79;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    button:hover {
+      background: #163a5b;
+    }
+
+    .status {
+      font-size: 14px;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #66717c;
+      line-height: 1.45;
+    }
+
+    .company-item {
+      padding: 10px 0;
+      border-bottom: 1px solid #e7ecf1;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .company-item:hover {
+      background: #f5f8fb;
+    }
+
+    .company-item strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .badge {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: #e8f0f7;
+      color: #1f4e79;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .balloon-title {
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 6px;
+    }
+
+    .balloon-address {
+      margin-bottom: 8px;
+      color: #555;
+      font-size: 13px;
+    }
+
+    .patent-list {
+      max-height: 260px;
+      overflow-y: auto;
+      padding-left: 18px;
+      margin: 8px 0 0;
+    }
+
+    .patent-list li {
+      margin-bottom: 5px;
+    }
+
     @media (max-width: 900px) {
-      .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-      .sidebar { max-height: 45vh; border-right: 0; border-bottom: 1px solid #d9e0e7; }
+      .layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+
+      .sidebar {
+        max-height: 45vh;
+        border-right: 0;
+        border-bottom: 1px solid #d9e0e7;
+      }
     }
   </style>
 </head>
 <body>
-<header>
-  <h1>Карта предприятий и патентов Челябинской области</h1>
-  <p>Данные автоматически загружаются из файла patents.json.</p>
-</header>
+  <header>
+    <h1>Карта предприятий и патентов Челябинской области</h1>
+    <p>Одна точка на карте соответствует одному предприятию. В карточке предприятия отображается список патентов.</p>
+  </header>
 
-<main class="layout">
-  <aside class="sidebar">
-    <div class="card">
-      <span class="card-title">Поиск</span>
-      <input id="searchInput" type="text" placeholder="Предприятие, патент или адрес" />
-    </div>
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="card">
+        <label for="searchInput">Поиск</label>
+        <input id="searchInput" type="text" placeholder="Предприятие, адрес или патент" />
+      </div>
 
-    <div class="card">
-      <span class="card-title">Предприятие</span>
-      <select id="companyFilter">
-        <option value="">Все предприятия</option>
-      </select>
-    </div>
+      <div class="card">
+        <label for="companySelect">Предприятие</label>
+        <select id="companySelect">
+          <option value="">Все предприятия</option>
+        </select>
+        <button id="resetButton">Показать все</button>
+      </div>
 
-    <div class="card">
-      <span class="card-title">Статус</span>
-      <div id="status" class="status">Загрузка данных...</div>
-      <p class="hint">
-        Для обновления карты замените файл <b>patents.json</b> в репозитории.
-        Если в записи нет координат, сайт попробует найти их по адресу через Яндекс.Карты.
-      </p>
-    </div>
+      <div class="card">
+        <div id="status" class="status">Загрузка данных...</div>
+        <p class="hint">
+          Данные берутся из файла <b>patents.json</b>, который должен лежать рядом с <b>index.html</b>.
+        </p>
+      </div>
 
-    <div class="card">
-      <span class="card-title">Загруженные записи</span>
-      <div id="recordsList"></div>
-    </div>
-  </aside>
+      <div class="card">
+        <strong>Предприятия</strong>
+        <div id="companiesList"></div>
+      </div>
+    </aside>
 
-  <section id="map"></section>
-</main>
+    <section>
+      <div id="map"></div>
+    </section>
+  </main>
 
-<script>
-  let map;
-  let collection;
-  let allRecords = [];
-  let allPlacemarks = [];
+  <script>
+    const DATA_FILE = 'patents.json';
+    const REGION_SUFFIX = 'Челябинская область, Россия';
 
-  const statusBlock = document.getElementById('status');
-  const recordsList = document.getElementById('recordsList');
-  const searchInput = document.getElementById('searchInput');
-  const companyFilter = document.getElementById('companyFilter');
+    let map;
+    let clusterer;
+    let allCompanies = [];
+    let shownCompanies = [];
+    const placemarksByKey = new Map();
 
-  function escapeHtml(value) {
-    return String(value ?? '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#039;');
-  }
+    const searchInput = document.getElementById('searchInput');
+    const companySelect = document.getElementById('companySelect');
+    const resetButton = document.getElementById('resetButton');
+    const statusBlock = document.getElementById('status');
+    const companiesList = document.getElementById('companiesList');
 
-  function normalizeRecord(item) {
-    const lat = Number(String(item.lat ?? item.latitude ?? item['Широта'] ?? '').replace(',', '.'));
-    const lon = Number(String(item.lon ?? item.lng ?? item.longitude ?? item['Долгота'] ?? '').replace(',', '.'));
-
-    return {
-      company: String(item.company ?? item['Предприятие'] ?? item['Организация'] ?? item['Компания'] ?? '').trim(),
-      patent: String(item.patent ?? item['Патент'] ?? item['Название патента'] ?? '').trim(),
-      address: String(item.address ?? item['Адрес'] ?? '').trim(),
-      lat: Number.isFinite(lat) ? lat : null,
-      lon: Number.isFinite(lon) ? lon : null
-    };
-  }
-
-  function setStatus(text) {
-    statusBlock.textContent = text;
-  }
-
-  async function geocodeAddress(address) {
-    const result = await ymaps.geocode(`${address}, Челябинская область, Россия`, { results: 1 });
-    const first = result.geoObjects.get(0);
-    return first ? first.geometry.getCoordinates() : null;
-  }
-
-  function createPlacemark(record) {
-    const placemark = new ymaps.Placemark([record.lat, record.lon], {
-      balloonContent: `
-        <div class="popup-title">${escapeHtml(record.company || 'Предприятие не указано')}</div>
-        <div class="popup-text"><b>Патент:</b> ${escapeHtml(record.patent || 'Не указан')}</div>
-        <div class="popup-text"><b>Адрес:</b> ${escapeHtml(record.address || 'Не указан')}</div>
-      `,
-      hintContent: escapeHtml(record.company || record.patent || record.address)
-    }, {
-      preset: 'islands#blueIcon'
-    });
-
-    return { record, placemark };
-  }
-
-  function renderCompanyFilter(records) {
-    const companies = [...new Set(records.map(r => r.company).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru'));
-    companyFilter.innerHTML = '<option value="">Все предприятия</option>';
-
-    companies.forEach(company => {
-      const option = document.createElement('option');
-      option.value = company;
-      option.textContent = company;
-      companyFilter.appendChild(option);
-    });
-  }
-
-  function renderList(items) {
-    recordsList.innerHTML = '';
-
-    items.forEach(({ record, placemark }) => {
-      const div = document.createElement('div');
-      div.className = 'list-item';
-      div.innerHTML = `
-        <strong>${escapeHtml(record.company || 'Без названия предприятия')}</strong>
-        <div>${escapeHtml(record.patent || 'Без названия патента')}</div>
-        <div class="hint">${escapeHtml(record.address || 'Адрес не указан')}</div>
-      `;
-      div.addEventListener('click', () => {
-        map.setCenter([record.lat, record.lon], 14, { duration: 300 });
-        placemark.balloon.open();
-      });
-      recordsList.appendChild(div);
-    });
-  }
-
-  function applyFilters() {
-    const query = searchInput.value.trim().toLowerCase();
-    const selectedCompany = companyFilter.value;
-
-    collection.removeAll();
-
-    const filtered = allPlacemarks.filter(({ record }) => {
-      const text = `${record.company} ${record.patent} ${record.address}`.toLowerCase();
-      const matchesQuery = !query || text.includes(query);
-      const matchesCompany = !selectedCompany || record.company === selectedCompany;
-      return matchesQuery && matchesCompany;
-    });
-
-    filtered.forEach(({ placemark }) => collection.add(placemark));
-    renderList(filtered);
-    setStatus(`Всего записей: ${allRecords.length}\nПоказано на карте: ${filtered.length}`);
-  }
-
-  async function loadData() {
-    const response = await fetch('patents.json', { cache: 'no-store' });
-
-    if (!response.ok) {
-      throw new Error('Не найден файл patents.json');
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
     }
 
-    const rawData = await response.json();
-    allRecords = rawData.map(normalizeRecord).filter(r => r.company || r.patent || r.address);
+    function normalizeText(value) {
+      return String(value ?? '')
+        .trim()
+        .toLowerCase()
+        .replaceAll('ё', 'е');
+    }
 
-    let added = 0;
-    let failed = 0;
+    function getField(row, names) {
+      const normalizedRow = {};
 
-    for (let i = 0; i < allRecords.length; i++) {
-      const record = allRecords[i];
-      setStatus(`Обработка записей: ${i + 1} из ${allRecords.length}\nДобавлено точек: ${added}\nНе найдено адресов: ${failed}`);
+      Object.keys(row).forEach(key => {
+        normalizedRow[normalizeText(key)] = row[key];
+      });
 
-      if (!record.lat || !record.lon) {
-        if (!record.address) {
-          failed++;
-          continue;
-        }
-
-        try {
-          const coords = await geocodeAddress(record.address);
-          if (!coords) {
-            failed++;
-            continue;
-          }
-          record.lat = coords[0];
-          record.lon = coords[1];
-        } catch (error) {
-          failed++;
-          continue;
+      for (const name of names) {
+        const value = normalizedRow[normalizeText(name)];
+        if (value !== undefined && value !== null && String(value).trim() !== '') {
+          return value;
         }
       }
 
-      const item = createPlacemark(record);
-      allPlacemarks.push(item);
-      collection.add(item.placemark);
-      added++;
+      return '';
     }
 
-    if (collection.getLength() > 0) {
-      map.setBounds(collection.getBounds(), { checkZoomRange: true, zoomMargin: 40 });
+    function parseNumber(value) {
+      const number = Number(String(value ?? '').replace(',', '.').trim());
+      return Number.isFinite(number) ? number : null;
     }
 
-    renderCompanyFilter(allRecords);
-    renderList(allPlacemarks);
-    setStatus(`Готово.\nВсего записей: ${allRecords.length}\nДобавлено точек: ${added}\nНе найдено адресов: ${failed}`);
-  }
+    function normalizeRawRecords(rows) {
+      return rows.map(row => ({
+        address: String(getField(row, ['Адрес', 'address']) || '').trim(),
+        company: String(getField(row, ['Предприятие', 'Организация', 'Компания', 'Название предприятия', 'company']) || '').trim(),
+        patent: String(getField(row, ['Патент', 'Название патента', 'Разработка', 'patent']) || '').trim(),
+        lat: parseNumber(getField(row, ['Широта', 'lat', 'latitude'])),
+        lon: parseNumber(getField(row, ['Долгота', 'lon', 'lng', 'longitude']))
+      })).filter(row => row.company || row.address || row.patent);
+    }
 
-  ymaps.ready(async () => {
-    map = new ymaps.Map('map', {
-      center: [54.4, 60.9],
-      zoom: 7,
-      controls: ['zoomControl', 'fullscreenControl', 'typeSelector']
-    });
+    function groupByCompany(records) {
+      const grouped = new Map();
 
-    collection = new ymaps.GeoObjectCollection();
-    map.geoObjects.add(collection);
+      records.forEach(record => {
+        const company = record.company || 'Предприятие не указано';
+        const address = record.address || 'Адрес не указан';
+        const key = `${normalizeText(company)}|${normalizeText(address)}`;
+
+        if (!grouped.has(key)) {
+          grouped.set(key, {
+            key,
+            company,
+            address,
+            lat: record.lat,
+            lon: record.lon,
+            patents: []
+          });
+        }
+
+        const item = grouped.get(key);
+
+        if (!item.lat && record.lat) item.lat = record.lat;
+        if (!item.lon && record.lon) item.lon = record.lon;
+
+        if (record.patent && !item.patents.includes(record.patent)) {
+          item.patents.push(record.patent);
+        }
+      });
+
+      return Array.from(grouped.values())
+        .sort((a, b) => a.company.localeCompare(b.company, 'ru'));
+    }
+
+    async function geocodeCompany(company) {
+      if (company.lat && company.lon) return company;
+      if (!company.address || company.address === 'Адрес не указан') return company;
+
+      const query = `${company.address}, ${REGION_SUFFIX}`;
+      const result = await ymaps.geocode(query, { results: 1 });
+      const first = result.geoObjects.get(0);
+
+      if (!first) return company;
+
+      const coords = first.geometry.getCoordinates();
+      company.lat = coords[0];
+      company.lon = coords[1];
+      return company;
+    }
+
+    function makeBalloonContent(company) {
+      const patents = company.patents.length
+        ? company.patents
+        : ['Патенты не указаны'];
+
+      const patentItems = patents
+        .map(patent => `<li>${escapeHtml(patent)}</li>`)
+        .join('');
+
+      return `
+        <div class="balloon-title">${escapeHtml(company.company)}</div>
+        <div class="balloon-address">${escapeHtml(company.address)}</div>
+        <b>Патенты: ${company.patents.length}</b>
+        <ol class="patent-list">${patentItems}</ol>
+      `;
+    }
+
+    function makePlacemark(company) {
+      const placemark = new ymaps.Placemark(
+        [company.lat, company.lon],
+        {
+          balloonContent: makeBalloonContent(company),
+          hintContent: `${company.company} — ${company.patents.length} пат.`
+        },
+        {
+          preset: 'islands#blueIcon'
+        }
+      );
+
+      placemark.events.add('click', () => {
+        map.setCenter([company.lat, company.lon], Math.max(map.getZoom(), 11), { duration: 300 });
+      });
+
+      return placemark;
+    }
+
+    function renderMap(companies) {
+      clusterer.removeAll();
+      placemarksByKey.clear();
+
+      const placemarks = [];
+      const bounds = [];
+
+      companies.forEach(company => {
+        if (!company.lat || !company.lon) return;
+
+        const placemark = makePlacemark(company);
+        placemarks.push(placemark);
+        placemarksByKey.set(company.key, placemark);
+        bounds.push([company.lat, company.lon]);
+      });
+
+      clusterer.add(placemarks);
+
+      if (bounds.length === 1) {
+        map.setCenter(bounds[0], 12);
+      } else if (bounds.length > 1) {
+        map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 40 });
+      }
+    }
+
+    function renderCompanySelect(companies) {
+      companySelect.innerHTML = '<option value="">Все предприятия</option>';
+
+      companies.forEach(company => {
+        const option = document.createElement('option');
+        option.value = company.key;
+        option.textContent = `${company.company} (${company.patents.length})`;
+        companySelect.appendChild(option);
+      });
+    }
+
+    function renderCompaniesList(companies) {
+      companiesList.innerHTML = '';
+
+      companies.forEach(company => {
+        const div = document.createElement('div');
+        div.className = 'company-item';
+        div.innerHTML = `
+          <strong>${escapeHtml(company.company)}</strong>
+          <div class="hint">${escapeHtml(company.address)}</div>
+          <span class="badge">${company.patents.length} пат.</span>
+        `;
+
+        div.addEventListener('click', () => focusCompany(company.key));
+        companiesList.appendChild(div);
+      });
+    }
+
+    function focusCompany(key) {
+      const company = allCompanies.find(item => item.key === key);
+      const placemark = placemarksByKey.get(key);
+
+      if (!company || !placemark) return;
+
+      map.setCenter([company.lat, company.lon], 12, { duration: 300 });
+      placemark.balloon.open();
+    }
+
+    function applyFilters() {
+      const query = normalizeText(searchInput.value);
+      const selectedKey = companySelect.value;
+
+      shownCompanies = allCompanies.filter(company => {
+        const text = normalizeText([
+          company.company,
+          company.address,
+          ...company.patents
+        ].join(' '));
+
+        const matchesSearch = !query || text.includes(query);
+        const matchesCompany = !selectedKey || company.key === selectedKey;
+
+        return matchesSearch && matchesCompany;
+      });
+
+      renderMap(shownCompanies);
+      renderCompaniesList(shownCompanies);
+      updateStatus();
+    }
+
+    function updateStatus(extraText = '') {
+      const totalCompanies = allCompanies.length;
+      const totalPatents = allCompanies.reduce((sum, company) => sum + company.patents.length, 0);
+      const visibleCompanies = shownCompanies.length;
+      const visiblePatents = shownCompanies.reduce((sum, company) => sum + company.patents.length, 0);
+      const withoutCoords = allCompanies.filter(company => !company.lat || !company.lon).length;
+
+      statusBlock.textContent = [
+        extraText,
+        `Всего предприятий: ${totalCompanies}`,
+        `Всего патентов: ${totalPatents}`,
+        `Показано предприятий: ${visibleCompanies}`,
+        `Показано патентов: ${visiblePatents}`,
+        withoutCoords ? `Без координат: ${withoutCoords}` : ''
+      ].filter(Boolean).join('\n');
+    }
+
+    async function loadData() {
+      const response = await fetch(DATA_FILE);
+
+      if (!response.ok) {
+        throw new Error(`Не удалось загрузить ${DATA_FILE}`);
+      }
+
+      const rows = await response.json();
+      const records = normalizeRawRecords(rows);
+      const grouped = groupByCompany(records);
+
+      let foundCoords = 0;
+      let failedCoords = 0;
+
+      for (let i = 0; i < grouped.length; i++) {
+        const company = grouped[i];
+        statusBlock.textContent = `Геокодирование адресов: ${i + 1} из ${grouped.length}`;
+
+        try {
+          await geocodeCompany(company);
+          if (company.lat && company.lon) foundCoords++;
+          else failedCoords++;
+        } catch (error) {
+          console.warn('Ошибка геокодирования:', company, error);
+          failedCoords++;
+        }
+      }
+
+      allCompanies = grouped;
+      shownCompanies = grouped;
+
+      renderCompanySelect(allCompanies);
+      renderMap(shownCompanies);
+      renderCompaniesList(shownCompanies);
+      updateStatus(`Данные загружены. Координаты найдены: ${foundCoords}. Не найдены: ${failedCoords}.`);
+    }
 
     searchInput.addEventListener('input', applyFilters);
-    companyFilter.addEventListener('change', applyFilters);
+    companySelect.addEventListener('change', applyFilters);
 
-    try {
-      await loadData();
-    } catch (error) {
-      console.error(error);
-      setStatus('Ошибка загрузки данных. Проверьте, что рядом с index.html есть файл patents.json.');
-    }
-  });
-</script>
+    resetButton.addEventListener('click', () => {
+      searchInput.value = '';
+      companySelect.value = '';
+      applyFilters();
+    });
+
+    ymaps.ready(async () => {
+      map = new ymaps.Map('map', {
+        center: [54.4, 60.9],
+        zoom: 7,
+        controls: ['zoomControl', 'fullscreenControl', 'typeSelector']
+      });
+
+      clusterer = new ymaps.Clusterer({
+        preset: 'islands#blueClusterIcons',
+        groupByCoordinates: false,
+        clusterDisableClickZoom: false,
+        clusterOpenBalloonOnClick: true
+      });
+
+      map.geoObjects.add(clusterer);
+
+      try {
+        await loadData();
+      } catch (error) {
+        console.error(error);
+        statusBlock.textContent = 'Ошибка загрузки данных. Проверьте, что рядом с index.html есть файл patents.json.';
+      }
+    });
+  </script>
 </body>
 </html>
