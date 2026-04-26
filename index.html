@@ -274,7 +274,7 @@
 <body>
   <header>
     <h1>Карта предприятий и патентов Челябинской области</h1>
-    <p>Одна точка на карте соответствует одному предприятию. В карточке предприятия отображается список патентов.</p>
+    <p>Одна точка на карте соответствует одному владельцу патента. В карточке отображается список РИД.</p>
 
     <nav class="tabs">
       <button class="tab-button active" data-tab="mapTab">Интерактивная карта</button>
@@ -287,7 +287,7 @@
       <aside class="sidebar">
         <div class="card">
           <label for="searchInput">Поиск</label>
-          <input id="searchInput" type="text" placeholder="Предприятие, адрес или патент" />
+          <input id="searchInput" type="text" placeholder="Владелец, ОГРН, контактные данные или РИД" />
         </div>
 
         <div class="card">
@@ -322,7 +322,7 @@
       <div class="list-toolbar">
         <div class="card">
           <label for="patentSearchInput">Поиск по списку</label>
-          <input id="patentSearchInput" type="text" placeholder="Предприятие, адрес или патент" />
+          <input id="patentSearchInput" type="text" placeholder="Владелец, ОГРН, контактные данные, название, номер РИД или тип" />
         </div>
 
         <div class="card">
@@ -342,9 +342,13 @@
           <thead>
             <tr>
               <th class="number-cell">№</th>
-              <th class="company-cell">Предприятие</th>
-              <th class="address-cell">Адрес</th>
-              <th>Патент</th>
+              <th class="company-cell">Владелец патента</th>
+              <th>ОГРН</th>
+              <th class="address-cell">Контактные данные</th>
+              <th>Название</th>
+              <th>Номер регистрации РИД</th>
+              <th>Тип</th>
+              <th>Подробности (ФИПС)</th>
             </tr>
           </thead>
           <tbody id="patentsTableBody"></tbody>
@@ -416,9 +420,13 @@
 
     function normalizeRawRecords(rows) {
       return rows.map(row => ({
-        address: String(getField(row, ['Адрес', 'address']) || '').trim(),
-        company: String(getField(row, ['Предприятие', 'Организация', 'Компания', 'Название предприятия', 'company']) || '').trim(),
-        patent: String(getField(row, ['Патент', 'Название патента', 'Разработка', 'patent']) || '').trim(),
+        address: String(getField(row, ['Контактные данные', 'Адрес', 'address']) || '').trim(),
+        company: String(getField(row, ['Наименование владельца патента', 'Предприятие', 'Организация', 'Компания', 'Название предприятия', 'company']) || '').trim(),
+        patent: String(getField(row, ['Название', 'Патент', 'Название патента', 'Разработка', 'patent']) || '').trim(),
+        ogrn: String(getField(row, ['ОГРН', 'ogrn']) || '').trim(),
+        regNumber: String(getField(row, ['Номер регистрации РИД', 'Номер регистрации', 'Регистрационный номер', 'ridNumber']) || '').trim(),
+        type: String(getField(row, ['Тип', 'type']) || '').trim(),
+        details: String(getField(row, ['Подробности (ФИПС)', 'Подробности', 'ФИПС', 'details']) || '').trim(),
         lat: parseNumber(getField(row, ['Широта', 'lat', 'latitude'])),
         lon: parseNumber(getField(row, ['Долгота', 'lon', 'lng', 'longitude']))
       })).filter(row => row.company || row.address || row.patent);
@@ -439,7 +447,10 @@
             address,
             lat: record.lat,
             lon: record.lon,
-            patents: []
+            patents: [],
+            ogrn: record.ogrn,
+            contact: record.address,
+            items: []
           });
         }
 
@@ -448,8 +459,24 @@
         if (!item.lat && record.lat) item.lat = record.lat;
         if (!item.lon && record.lon) item.lon = record.lon;
 
-        if (record.patent && !item.patents.includes(record.patent)) {
-          item.patents.push(record.patent);
+        if (!item.ogrn && record.ogrn) item.ogrn = record.ogrn;
+        if (!item.contact && record.address) item.contact = record.address;
+
+        const patentItem = {
+          title: record.patent,
+          regNumber: record.regNumber,
+          type: record.type,
+          details: record.details
+        };
+
+        const duplicate = item.items.some(existing =>
+          existing.title === patentItem.title &&
+          existing.regNumber === patentItem.regNumber
+        );
+
+        if ((patentItem.title || patentItem.regNumber) && !duplicate) {
+          item.items.push(patentItem);
+          item.patents.push(patentItem.title || patentItem.regNumber);
         }
       });
 
@@ -471,12 +498,16 @@
           return;
         }
 
-        company.patents.forEach(patent => {
+        company.items.forEach(item => {
           rows.push({
             companyKey: company.key,
             company: company.company,
+            ogrn: company.ogrn || '',
             address: company.address,
-            patent
+            patent: item.title || '',
+            regNumber: item.regNumber || '',
+            type: item.type || '',
+            details: item.details || ''
           });
         });
       });
@@ -505,9 +536,16 @@
         ? company.patents
         : ['Патенты не указаны'];
 
-      const patentItems = patents
-        .map(patent => `<li>${escapeHtml(patent)}</li>`)
-        .join('');
+      const patentItems = company.items.length
+        ? company.items.map(item => `
+            <li>
+              <b>${escapeHtml(item.title || 'Название не указано')}</b>
+              ${item.regNumber ? `<br>№ РИД: ${escapeHtml(item.regNumber)}` : ''}
+              ${item.type ? `<br>Тип: ${escapeHtml(item.type)}` : ''}
+              ${item.details ? `<br><a href="${escapeHtml(item.details)}" target="_blank">Подробности ФИПС</a>` : ''}
+            </li>
+          `).join('')
+        : patents.map(patent => `<li>${escapeHtml(patent)}</li>`).join('');
 
       return `
         <div class="balloon-title">${escapeHtml(company.company)}</div>
@@ -602,8 +640,12 @@
         tr.innerHTML = `
           <td class="number-cell">${index + 1}</td>
           <td class="company-cell">${escapeHtml(row.company)}</td>
+          <td>${escapeHtml(row.ogrn || '')}</td>
           <td class="address-cell">${escapeHtml(row.address)}</td>
           <td>${escapeHtml(row.patent)}</td>
+          <td>${escapeHtml(row.regNumber || '')}</td>
+          <td>${escapeHtml(row.type || '')}</td>
+          <td>${row.details ? `<a href="${escapeHtml(row.details)}" target="_blank">Открыть</a>` : ''}</td>
         `;
         patentsTableBody.appendChild(tr);
       });
@@ -647,7 +689,7 @@
       const selectedKey = patentCompanySelect.value;
 
       shownPatentRows = allPatentRows.filter(row => {
-        const text = normalizeText(`${row.company} ${row.address} ${row.patent}`);
+        const text = normalizeText(`${row.company} ${row.ogrn} ${row.address} ${row.patent} ${row.regNumber} ${row.type} ${row.details}`);
         const matchesSearch = !query || text.includes(query);
         const matchesCompany = !selectedKey || row.companyKey === selectedKey;
         return matchesSearch && matchesCompany;
