@@ -21,7 +21,7 @@
     }
 
     header {
-      padding: 14px 22px;
+      padding: 14px 22px 0;
       background: #1f4e79;
       color: white;
     }
@@ -32,15 +32,47 @@
     }
 
     header p {
-      margin: 0;
+      margin: 0 0 12px;
       font-size: 14px;
       opacity: 0.9;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: #1f4e79;
+    }
+
+    .tab-button {
+      width: auto;
+      margin: 0;
+      padding: 11px 18px;
+      border: 0;
+      border-radius: 8px 8px 0 0;
+      background: rgba(255, 255, 255, 0.16);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .tab-button.active {
+      background: #f4f6f8;
+      color: #1f4e79;
+    }
+
+    .tab-content {
+      display: none;
+      height: calc(100vh - 119px);
+    }
+
+    .tab-content.active {
+      display: block;
     }
 
     .layout {
       display: grid;
       grid-template-columns: 360px 1fr;
-      height: calc(100vh - 74px);
+      height: 100%;
     }
 
     .sidebar {
@@ -155,16 +187,86 @@
       margin-bottom: 5px;
     }
 
+    .list-page {
+      height: 100%;
+      padding: 18px;
+      overflow: auto;
+    }
+
+    .list-toolbar {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .table-wrap {
+      background: white;
+      border: 1px solid #d9e0e7;
+      border-radius: 10px;
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #e7ecf1;
+      vertical-align: top;
+      text-align: left;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: #edf3f8;
+      color: #1f4e79;
+      z-index: 1;
+    }
+
+    tr:hover td {
+      background: #f7fafc;
+    }
+
+    .number-cell {
+      width: 60px;
+      color: #66717c;
+    }
+
+    .company-cell {
+      width: 24%;
+      font-weight: 700;
+    }
+
+    .address-cell {
+      width: 24%;
+      color: #555;
+    }
+
     @media (max-width: 900px) {
+      .tab-content {
+        height: auto;
+        min-height: calc(100vh - 119px);
+      }
+
       .layout {
         grid-template-columns: 1fr;
-        grid-template-rows: auto 1fr;
+        grid-template-rows: auto 60vh;
       }
 
       .sidebar {
         max-height: 45vh;
         border-right: 0;
         border-bottom: 1px solid #d9e0e7;
+      }
+
+      .list-toolbar {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -173,40 +275,83 @@
   <header>
     <h1>Карта предприятий и патентов Челябинской области</h1>
     <p>Одна точка на карте соответствует одному предприятию. В карточке предприятия отображается список патентов.</p>
+
+    <nav class="tabs">
+      <button class="tab-button active" data-tab="mapTab">Интерактивная карта</button>
+      <button class="tab-button" data-tab="patentsTab">Список патентов</button>
+    </nav>
   </header>
 
-  <main class="layout">
-    <aside class="sidebar">
-      <div class="card">
-        <label for="searchInput">Поиск</label>
-        <input id="searchInput" type="text" placeholder="Предприятие, адрес или патент" />
+  <section id="mapTab" class="tab-content active">
+    <main class="layout">
+      <aside class="sidebar">
+        <div class="card">
+          <label for="searchInput">Поиск</label>
+          <input id="searchInput" type="text" placeholder="Предприятие, адрес или патент" />
+        </div>
+
+        <div class="card">
+          <label for="companySelect">Предприятие</label>
+          <select id="companySelect">
+            <option value="">Все предприятия</option>
+          </select>
+          <button id="resetButton">Показать все</button>
+        </div>
+
+        <div class="card">
+          <div id="status" class="status">Загрузка данных...</div>
+          <p class="hint">
+            Данные берутся из файла <b>patents.json</b>, который должен лежать рядом с <b>index.html</b>.
+          </p>
+        </div>
+
+        <div class="card">
+          <strong>Предприятия</strong>
+          <div id="companiesList"></div>
+        </div>
+      </aside>
+
+      <section>
+        <div id="map"></div>
+      </section>
+    </main>
+  </section>
+
+  <section id="patentsTab" class="tab-content">
+    <div class="list-page">
+      <div class="list-toolbar">
+        <div class="card">
+          <label for="patentSearchInput">Поиск по списку</label>
+          <input id="patentSearchInput" type="text" placeholder="Предприятие, адрес или патент" />
+        </div>
+
+        <div class="card">
+          <label for="patentCompanySelect">Предприятие</label>
+          <select id="patentCompanySelect">
+            <option value="">Все предприятия</option>
+          </select>
+        </div>
       </div>
 
       <div class="card">
-        <label for="companySelect">Предприятие</label>
-        <select id="companySelect">
-          <option value="">Все предприятия</option>
-        </select>
-        <button id="resetButton">Показать все</button>
+        <div id="patentsStatus" class="status">Загрузка списка...</div>
       </div>
 
-      <div class="card">
-        <div id="status" class="status">Загрузка данных...</div>
-        <p class="hint">
-          Данные берутся из файла <b>patents.json</b>, который должен лежать рядом с <b>index.html</b>.
-        </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="number-cell">№</th>
+              <th class="company-cell">Предприятие</th>
+              <th class="address-cell">Адрес</th>
+              <th>Патент</th>
+            </tr>
+          </thead>
+          <tbody id="patentsTableBody"></tbody>
+        </table>
       </div>
-
-      <div class="card">
-        <strong>Предприятия</strong>
-        <div id="companiesList"></div>
-      </div>
-    </aside>
-
-    <section>
-      <div id="map"></div>
-    </section>
-  </main>
+    </div>
+  </section>
 
   <script>
     const DATA_FILE = 'patents.json';
@@ -216,6 +361,8 @@
     let clusterer;
     let allCompanies = [];
     let shownCompanies = [];
+    let allPatentRows = [];
+    let shownPatentRows = [];
     const placemarksByKey = new Map();
 
     const searchInput = document.getElementById('searchInput');
@@ -223,6 +370,11 @@
     const resetButton = document.getElementById('resetButton');
     const statusBlock = document.getElementById('status');
     const companiesList = document.getElementById('companiesList');
+
+    const patentSearchInput = document.getElementById('patentSearchInput');
+    const patentCompanySelect = document.getElementById('patentCompanySelect');
+    const patentsStatus = document.getElementById('patentsStatus');
+    const patentsTableBody = document.getElementById('patentsTableBody');
 
     function escapeHtml(value) {
       return String(value ?? '')
@@ -305,6 +457,33 @@
         .sort((a, b) => a.company.localeCompare(b.company, 'ru'));
     }
 
+    function buildPatentRows(companies) {
+      const rows = [];
+
+      companies.forEach(company => {
+        if (!company.patents.length) {
+          rows.push({
+            companyKey: company.key,
+            company: company.company,
+            address: company.address,
+            patent: 'Патент не указан'
+          });
+          return;
+        }
+
+        company.patents.forEach(patent => {
+          rows.push({
+            companyKey: company.key,
+            company: company.company,
+            address: company.address,
+            patent
+          });
+        });
+      });
+
+      return rows;
+    }
+
     async function geocodeCompany(company) {
       if (company.lat && company.lon) return company;
       if (!company.address || company.address === 'Адрес не указан') return company;
@@ -382,15 +561,20 @@
       }
     }
 
-    function renderCompanySelect(companies) {
-      companySelect.innerHTML = '<option value="">Все предприятия</option>';
+    function fillCompanySelect(selectElement, companies) {
+      selectElement.innerHTML = '<option value="">Все предприятия</option>';
 
       companies.forEach(company => {
         const option = document.createElement('option');
         option.value = company.key;
         option.textContent = `${company.company} (${company.patents.length})`;
-        companySelect.appendChild(option);
+        selectElement.appendChild(option);
       });
+    }
+
+    function renderCompanySelects(companies) {
+      fillCompanySelect(companySelect, companies);
+      fillCompanySelect(patentCompanySelect, companies);
     }
 
     function renderCompaniesList(companies) {
@@ -410,17 +594,33 @@
       });
     }
 
+    function renderPatentsTable(rows) {
+      patentsTableBody.innerHTML = '';
+
+      rows.forEach((row, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="number-cell">${index + 1}</td>
+          <td class="company-cell">${escapeHtml(row.company)}</td>
+          <td class="address-cell">${escapeHtml(row.address)}</td>
+          <td>${escapeHtml(row.patent)}</td>
+        `;
+        patentsTableBody.appendChild(tr);
+      });
+    }
+
     function focusCompany(key) {
       const company = allCompanies.find(item => item.key === key);
       const placemark = placemarksByKey.get(key);
 
       if (!company || !placemark) return;
 
+      switchTab('mapTab');
       map.setCenter([company.lat, company.lon], 12, { duration: 300 });
       placemark.balloon.open();
     }
 
-    function applyFilters() {
+    function applyMapFilters() {
       const query = normalizeText(searchInput.value);
       const selectedKey = companySelect.value;
 
@@ -439,10 +639,25 @@
 
       renderMap(shownCompanies);
       renderCompaniesList(shownCompanies);
-      updateStatus();
+      updateMapStatus();
     }
 
-    function updateStatus(extraText = '') {
+    function applyPatentFilters() {
+      const query = normalizeText(patentSearchInput.value);
+      const selectedKey = patentCompanySelect.value;
+
+      shownPatentRows = allPatentRows.filter(row => {
+        const text = normalizeText(`${row.company} ${row.address} ${row.patent}`);
+        const matchesSearch = !query || text.includes(query);
+        const matchesCompany = !selectedKey || row.companyKey === selectedKey;
+        return matchesSearch && matchesCompany;
+      });
+
+      renderPatentsTable(shownPatentRows);
+      updatePatentsStatus();
+    }
+
+    function updateMapStatus(extraText = '') {
       const totalCompanies = allCompanies.length;
       const totalPatents = allCompanies.reduce((sum, company) => sum + company.patents.length, 0);
       const visibleCompanies = shownCompanies.length;
@@ -457,6 +672,27 @@
         `Показано патентов: ${visiblePatents}`,
         withoutCoords ? `Без координат: ${withoutCoords}` : ''
       ].filter(Boolean).join('\n');
+    }
+
+    function updatePatentsStatus() {
+      patentsStatus.textContent = [
+        `Всего патентов в списке: ${allPatentRows.length}`,
+        `Показано патентов: ${shownPatentRows.length}`
+      ].join('\n');
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.toggle('active', button.dataset.tab === tabId);
+      });
+
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.toggle('active', tab.id === tabId);
+      });
+
+      if (tabId === 'mapTab' && map) {
+        setTimeout(() => map.container.fitToViewport(), 100);
+      }
     }
 
     async function loadData() {
@@ -476,6 +712,7 @@
       for (let i = 0; i < grouped.length; i++) {
         const company = grouped[i];
         statusBlock.textContent = `Геокодирование адресов: ${i + 1} из ${grouped.length}`;
+        patentsStatus.textContent = `Геокодирование адресов: ${i + 1} из ${grouped.length}`;
 
         try {
           await geocodeCompany(company);
@@ -489,20 +726,32 @@
 
       allCompanies = grouped;
       shownCompanies = grouped;
+      allPatentRows = buildPatentRows(grouped);
+      shownPatentRows = allPatentRows;
 
-      renderCompanySelect(allCompanies);
+      renderCompanySelects(allCompanies);
       renderMap(shownCompanies);
       renderCompaniesList(shownCompanies);
-      updateStatus(`Данные загружены. Координаты найдены: ${foundCoords}. Не найдены: ${failedCoords}.`);
+      renderPatentsTable(shownPatentRows);
+
+      updateMapStatus(`Данные загружены. Координаты найдены: ${foundCoords}. Не найдены: ${failedCoords}.`);
+      updatePatentsStatus();
     }
 
-    searchInput.addEventListener('input', applyFilters);
-    companySelect.addEventListener('change', applyFilters);
+    document.querySelectorAll('.tab-button').forEach(button => {
+      button.addEventListener('click', () => switchTab(button.dataset.tab));
+    });
+
+    searchInput.addEventListener('input', applyMapFilters);
+    companySelect.addEventListener('change', applyMapFilters);
+
+    patentSearchInput.addEventListener('input', applyPatentFilters);
+    patentCompanySelect.addEventListener('change', applyPatentFilters);
 
     resetButton.addEventListener('click', () => {
       searchInput.value = '';
       companySelect.value = '';
-      applyFilters();
+      applyMapFilters();
     });
 
     ymaps.ready(async () => {
@@ -526,6 +775,7 @@
       } catch (error) {
         console.error(error);
         statusBlock.textContent = 'Ошибка загрузки данных. Проверьте, что рядом с index.html есть файл patents.json.';
+        patentsStatus.textContent = 'Ошибка загрузки данных. Проверьте, что рядом с index.html есть файл patents.json.';
       }
     });
   </script>
