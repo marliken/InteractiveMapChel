@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Карта предприятий и РИД Челябинской области</title>
 
-  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU"></script>
+  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=e6a6f9fe-5e50-48e8-96d4-7209b0eecb2d"></script>
 
   <style>
     * { box-sizing: border-box; }
@@ -720,7 +720,14 @@
       });
 
       if (tabId === 'mapTab' && map) {
-        setTimeout(() => map.container.fitToViewport(), 100);
+        setTimeout(() => {
+          try {
+            map.container.fitToViewport();
+            map.setZoom(map.getZoom());
+          } catch(e) {
+            console.warn('Map resize error', e);
+          }
+        }, 200);
       }
     }
 
@@ -783,6 +790,9 @@
     ridCompanySelect.addEventListener('change', applyRidFilters);
 
     ymaps.ready(async () => {
+      // FIX: иногда карта не отображается, если контейнер скрыт при инициализации
+      // добавляем небольшую задержку
+      await new Promise(r => setTimeout(r, 100));
       map = new ymaps.Map('map', {
         center: [54.4, 60.9],
         zoom: 7,
