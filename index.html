@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Карта предприятий и РИД Челябинской области</title>
 
-  <!-- Яндекс.Карты. ВАЖНО: ключ должен быть создан для JavaScript API и HTTP Геокодера -->
+  <!-- Яндекс.Карты. Ключ должен быть создан для JavaScript API и HTTP Геокодера -->
   <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=e6a6f9fe-5e50-48e8-96d4-7209b0eecb2d"></script>
 
   <style>
@@ -309,8 +309,7 @@
   <script>
     const DATA_FILE = 'patents.json';
     const REGION_SUFFIX = 'Челябинская область, Россия';
-    const CHELYABINSK_REGION_BOUNDS = [[52.0, 57.0], [56.5, 63.5]];
-    const MAP_DEFAULT_CENTER = [55.1599, 61.4026]; // центр: г. Челябинск
+    const MAP_DEFAULT_CENTER = [55.1599, 61.4026]; // г. Челябинск
     const MAP_DEFAULT_ZOOM = 7;
 
     let map;
@@ -560,29 +559,23 @@
     }
 
     function renderMap(companies) {
-  clusterer.removeAll();
-  placemarksByKey.clear();
+      clusterer.removeAll();
+      placemarksByKey.clear();
 
-  const placemarks = [];
+      const placemarks = [];
 
-  companies.forEach(company => {
-    if (!company.lat || !company.lon) return;
+      companies.forEach(company => {
+        if (!company.lat || !company.lon) return;
 
-    const placemark = makePlacemark(company);
-    placemarks.push(placemark);
-    placemarksByKey.set(company.key, placemark);
-  });
-
-  clusterer.add(placemarks);
-
-  // ❗ фиксированная позиция карты (как ты хотел)
-  map.setCenter([55.1599, 61.4026], 7);
-}
+        const placemark = makePlacemark(company);
+        placemarks.push(placemark);
+        placemarksByKey.set(company.key, placemark);
+      });
 
       clusterer.add(placemarks);
 
-      // Автоподгон отключен: каR, MAP_DEFAULT_ZOOM););
-      }
+      // Автоподгон отключен: карта остается с центром на Челябинске.
+      map.setCenter(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM);
     }
 
     function fillCompanySelect(selectElement, companies) {
@@ -676,7 +669,7 @@
       updateRidStatus();
     }
 
-    function updateMapStatus(extraText = '') {
+    function updateMapStatus() {
       const totalRidCount = allCompanies.reduce((sum, company) => sum + company.items.length, 0);
       statusBlock.textContent = `Общее количество РИД: ${totalRidCount}`;
     }
@@ -700,7 +693,7 @@
       if (tabId === 'mapTab' && map) {
         setTimeout(() => {
           map.container.fitToViewport();
-          map.setZoom(map.getZoom());
+          map.setCenter(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM);
         }, 150);
       }
     }
@@ -716,8 +709,6 @@
       if (!records.length) throw new Error('В patents.json не найдено записей. Проверьте названия полей.');
 
       const grouped = groupByCompany(records);
-      let foundCoords = 0;
-      let failedCoords = 0;
 
       for (let i = 0; i < grouped.length; i++) {
         const company = grouped[i];
@@ -726,11 +717,8 @@
 
         try {
           await geocodeCompany(company);
-          if (company.lat && company.lon) foundCoords++;
-          else failedCoords++;
         } catch (error) {
           console.warn('Ошибка геокодирования:', company.address, company, error);
-          failedCoords++;
         }
       }
 
@@ -743,8 +731,7 @@
       renderMap(shownCompanies);
       renderCompaniesList(shownCompanies);
       renderRidTable(shownRidRows);
-
-      updateMapStatus(`Данные загружены. Координаты найдены: ${foundCoords}. Не найдены: ${failedCoords}.`);
+      updateMapStatus();
       updateRidStatus();
     }
 
@@ -771,11 +758,6 @@
       }, {
         minZoom: 3,
         maxZoom: 18
-      });
-
-      map.setBounds(CHELYABINSK_REGION_BOUNDS, {
-        checkZoomRange: true,
-        zoomMargin: 120
       });
 
       clusterer = new ymaps.Clusterer({
