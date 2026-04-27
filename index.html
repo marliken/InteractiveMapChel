@@ -7,6 +7,7 @@
 
   <!-- Яндекс.Карты. ВАЖНО: ключ должен быть создан для JavaScript API и HTTP Геокодера -->
   <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=e6a6f9fe-5e50-48e8-96d4-7209b0eecb2d"></script>
+
   <style>
     * { box-sizing: border-box; }
 
@@ -668,14 +669,8 @@
     }
 
     function updateMapStatus(extraText = '') {
-      const totalCompanies = allCompanies.length;
-      const totalRid = allCompanies.reduce((sum, company) => sum + company.items.length, 0);
-      const visibleCompanies = shownCompanies.length;
-      const visibleRid = shownCompanies.reduce((sum, company) => sum + company.items.length, 0);
-      const withoutCoords = allCompanies.filter(company => !company.lat || !company.lon).length;
-
-      const totalRid = allCompanies.reduce((sum, company) => sum + company.items.length, 0);
-      statusBlock.textContent = `Общее количество РИД: ${totalRid}`;
+      const totalRidCount = allCompanies.reduce((sum, company) => sum + company.items.length, 0);
+      statusBlock.textContent = `Общее количество РИД: ${totalRidCount}`;
     }
 
     function updateRidStatus() {
