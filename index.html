@@ -3,15 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Карта предприятий и РИДов Челябинской области</title>
+  <title>Карта предприятий и РИД Челябинской области</title>
 
-  <!-- Яндекс.Карты -->
   <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -40,7 +37,6 @@
     .tabs {
       display: flex;
       gap: 4px;
-      background: #1f4e79;
     }
 
     .tab-button {
@@ -65,9 +61,7 @@
       height: calc(100vh - 119px);
     }
 
-    .tab-content.active {
-      display: block;
-    }
+    .tab-content.active { display: block; }
 
     .layout {
       display: grid;
@@ -102,9 +96,7 @@
       font-size: 14px;
     }
 
-    input,
-    select,
-    button {
+    input, select, button {
       width: 100%;
       padding: 9px;
       border: 1px solid #c7d0d9;
@@ -121,9 +113,7 @@
       margin-top: 8px;
     }
 
-    button:hover {
-      background: #163a5b;
-    }
+    button:hover { background: #163a5b; }
 
     .status {
       font-size: 14px;
@@ -144,9 +134,7 @@
       cursor: pointer;
     }
 
-    .company-item:hover {
-      background: #f5f8fb;
-    }
+    .company-item:hover { background: #f5f8fb; }
 
     .company-item strong {
       display: block;
@@ -176,16 +164,14 @@
       font-size: 13px;
     }
 
-    .patent-list {
+    .rid-list {
       max-height: 260px;
       overflow-y: auto;
       padding-left: 18px;
       margin: 8px 0 0;
     }
 
-    .patent-list li {
-      margin-bottom: 5px;
-    }
+    .rid-list li { margin-bottom: 8px; }
 
     .list-page {
       height: 100%;
@@ -213,8 +199,7 @@
       font-size: 14px;
     }
 
-    th,
-    td {
+    th, td {
       padding: 10px;
       border-bottom: 1px solid #e7ecf1;
       vertical-align: top;
@@ -229,24 +214,11 @@
       z-index: 1;
     }
 
-    tr:hover td {
-      background: #f7fafc;
-    }
+    tr:hover td { background: #f7fafc; }
 
-    .number-cell {
-      width: 60px;
-      color: #66717c;
-    }
-
-    .company-cell {
-      width: 24%;
-      font-weight: 700;
-    }
-
-    .address-cell {
-      width: 24%;
-      color: #555;
-    }
+    .number-cell { width: 60px; color: #66717c; }
+    .company-cell { width: 22%; font-weight: 700; }
+    .address-cell { width: 22%; color: #555; }
 
     @media (max-width: 900px) {
       .tab-content {
@@ -265,20 +237,18 @@
         border-bottom: 1px solid #d9e0e7;
       }
 
-      .list-toolbar {
-        grid-template-columns: 1fr;
-      }
+      .list-toolbar { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>Карта предприятий и РИДов Челябинской области</h1>
-    <p>Одна точка на карте соответствует одному владельцу РИДа. В карточке отображается список РИД.</p>
+    <h1>Карта предприятий и РИД Челябинской области</h1>
+    <p>Одна точка на карте соответствует одному владельцу РИД. В карточке отображается список объектов.</p>
 
     <nav class="tabs">
       <button class="tab-button active" data-tab="mapTab">Интерактивная карта</button>
-      <button class="tab-button" data-tab="patentsTab">Список РИДов</button>
+      <button class="tab-button" data-tab="ridTab">Список РИД</button>
     </nav>
   </header>
 
@@ -287,71 +257,61 @@
       <aside class="sidebar">
         <div class="card">
           <label for="searchInput">Поиск</label>
-          <input id="searchInput" type="text" placeholder="Владелец, ОГРН, контактные данные или РИД" />
+          <input id="searchInput" type="text" placeholder="Владелец, ОГРН, адрес или РИД" />
         </div>
 
         <div class="card">
-          <label for="companySelect">Предприятие</label>
-          <select id="companySelect">
-            <option value="">Все предприятия</option>
-          </select>
+          <label for="companySelect">Владелец РИД</label>
+          <select id="companySelect"><option value="">Все владельцы</option></select>
           <button id="resetButton">Показать все</button>
         </div>
 
         <div class="card">
           <div id="status" class="status">Загрузка данных...</div>
-          <p class="hint">
-            Данные берутся из файла <b>patents.json</b>, который должен лежать рядом с <b>index.html</b>.
-          </p>
+          <p class="hint">Данные берутся из файла <b>patents.json</b>, который должен лежать рядом с <b>index.html</b>.</p>
         </div>
 
         <div class="card">
-          <strong>Предприятия</strong>
+          <strong>Владельцы РИД</strong>
           <div id="companiesList"></div>
         </div>
       </aside>
 
-      <section>
-        <div id="map"></div>
-      </section>
+      <section><div id="map"></div></section>
     </main>
   </section>
 
-  <section id="patentsTab" class="tab-content">
+  <section id="ridTab" class="tab-content">
     <div class="list-page">
       <div class="list-toolbar">
         <div class="card">
-          <label for="patentSearchInput">Поиск по списку</label>
-          <input id="patentSearchInput" type="text" placeholder="Владелец, ОГРН, контактные данные, название, номер РИД или тип" />
+          <label for="ridSearchInput">Поиск по списку</label>
+          <input id="ridSearchInput" type="text" placeholder="Владелец, ОГРН, адрес, название, номер или тип" />
         </div>
 
         <div class="card">
-          <label for="patentCompanySelect">Предприятие</label>
-          <select id="patentCompanySelect">
-            <option value="">Все предприятия</option>
-          </select>
+          <label for="ridCompanySelect">Владелец РИД</label>
+          <select id="ridCompanySelect"><option value="">Все владельцы</option></select>
         </div>
       </div>
 
-      <div class="card">
-        <div id="patentsStatus" class="status">Загрузка списка...</div>
-      </div>
+      <div class="card"><div id="ridStatus" class="status">Загрузка списка...</div></div>
 
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th class="number-cell">№</th>
-              <th class="company-cell">Владелец РИДа</th>
+              <th class="company-cell">Владелец РИД</th>
               <th>ОГРН</th>
-              <th class="address-cell">Контактные данные</th>
+              <th class="address-cell">Контактные данные / адрес</th>
               <th>Название</th>
               <th>Номер регистрации РИД</th>
               <th>Тип</th>
-              <th>Подробности (ФИПС)</th>
+              <th>ФИПС</th>
             </tr>
           </thead>
-          <tbody id="patentsTableBody"></tbody>
+          <tbody id="ridTableBody"></tbody>
         </table>
       </div>
     </div>
@@ -365,8 +325,8 @@
     let clusterer;
     let allCompanies = [];
     let shownCompanies = [];
-    let allPatentRows = [];
-    let shownPatentRows = [];
+    let allRidRows = [];
+    let shownRidRows = [];
     const placemarksByKey = new Map();
 
     const searchInput = document.getElementById('searchInput');
@@ -375,10 +335,10 @@
     const statusBlock = document.getElementById('status');
     const companiesList = document.getElementById('companiesList');
 
-    const patentSearchInput = document.getElementById('patentSearchInput');
-    const patentCompanySelect = document.getElementById('patentCompanySelect');
-    const patentsStatus = document.getElementById('patentsStatus');
-    const patentsTableBody = document.getElementById('patentsTableBody');
+    const ridSearchInput = document.getElementById('ridSearchInput');
+    const ridCompanySelect = document.getElementById('ridCompanySelect');
+    const ridStatus = document.getElementById('ridStatus');
+    const ridTableBody = document.getElementById('ridTableBody');
 
     function escapeHtml(value) {
       return String(value ?? '')
@@ -398,18 +358,14 @@
 
     function getField(row, names) {
       const normalizedRow = {};
-
       Object.keys(row).forEach(key => {
         normalizedRow[normalizeText(key)] = row[key];
       });
 
       for (const name of names) {
         const value = normalizedRow[normalizeText(name)];
-        if (value !== undefined && value !== null && String(value).trim() !== '') {
-          return value;
-        }
+        if (value !== undefined && value !== null && String(value).trim() !== '') return value;
       }
-
       return '';
     }
 
@@ -419,89 +375,77 @@
     }
 
     function extractAddressFromContacts(value) {
-      const text = String(value ?? '').replace(/\r/g, '\n').trim();
+      const text = String(value ?? '').trim();
       if (!text) return '';
 
       const lines = text
-        .split('\n')
+        .replaceAll('
+', '
+')
+        .split('
+')
         .map(line => line.trim())
         .filter(Boolean);
 
-      const serviceWords = [
-        'телефон', 'phone', 'e-mail', 'email', 'mail', 'web', 'сайт', 'соцсети',
-        'www.', 'http://', 'https://', '@', '+7', '8 ('
+      const badMarkers = [
+        'телефон', 'e-mail', 'email', 'mail', 'web', 'сайт', 'соцсети',
+        'www.', 'http://', 'https://', '@', '+7', '+ 7'
       ];
 
       const addressLines = [];
 
       for (const line of lines) {
         const low = normalizeText(line);
-        const isServiceLine = serviceWords.some(word => low.includes(normalizeText(word)));
+        const isContactLine = badMarkers.some(marker => low.includes(normalizeText(marker)));
 
-        if (isServiceLine && addressLines.length > 0) break;
-        if (isServiceLine) continue;
+        if (isContactLine && addressLines.length > 0) break;
+        if (isContactLine) continue;
 
-        addressLines.push(
-          line
-            .replace(/^адрес\\s*/i, '')
-            .replace(/^адрес:\\s*/i, '')
-            .trim()
-        );
+        let cleanLine = line.trim();
+        if (normalizeText(cleanLine).startsWith('адрес ')) {
+          cleanLine = cleanLine.slice(6).trim();
+        }
+        if (normalizeText(cleanLine).startsWith('адрес:')) {
+          cleanLine = cleanLine.slice(6).trim();
+        }
+
+        addressLines.push(cleanLine);
       }
 
-      return addressLines.join(' ').replace(/\\s+/g, ' ').trim();
-    }
-
-    function extractAddressFromContacts(value) {
-      const text = String(value address: extractAddressFromContacts(getField(row, ['Контактные данные', 'Адрес', 'address'])),xt
-        .split('\n')
-        .map(line => line.trim())
-        .filter(Boolean);
-
-      const serviceWords = [
-        'телефон', 'phone', 'e-mail', 'email', 'mail', 'web', 'сайт', 'соцсети',
-        'www.', 'http://', 'https://', '@', '+7', '8 ('
-      ];
-
-      const addressLines = [];
-
-      for (const line of lines) {
-        const low = normalizeText(line);
-        const isServiceLine = serviceWords.some(word => low.includes(normalizeText(word)));
-
-        if (isServiceLine && addressLines.length > 0) break;
-        if (isServiceLine) continue;
-
-        addressLines.push(
-          line
-            .replace(/^адрес\s*/i, '')
-            .replace(/^адрес:\s*/i, '')
-            .trim()
-        );
-      }
-
-      return addressLines.join(' ').replace(/\s+/g, ' ').trim();
+      return addressLines.join(' ').split(/\s+/).join(' ').trim();
     }
 
     function normalizeRawRecords(rows) {
       return rows.map(row => ({
-        address: String(getField(row, ['Контактные данные', 'Адрес', 'address']) || '').trim(),
-        company: String(getField(row, ['Наименование владельца РИДа', 'Наименование владельца РИД', 'Наименование владельца патента', 'Владелец РИДа', 'Владелец патента', 'Предприятие', 'Организация', 'Компания', 'Название предприятия', 'company']) || '').trim(),
-        patent: String(getField(row, ['Название', 'РИД', 'Название РИДа', 'Название РИД', 'Название патента', 'Патент', 'Разработка', 'patent']) || '').trim(),
+        company: String(getField(row, [
+          'Наименование владельца РИДа',
+          'Наименование владельца РИД',
+          'Наименование владельца патента',
+          'Владелец РИДа',
+          'Владелец РИД',
+          'Владелец патента',
+          'Предприятие',
+          'Организация',
+          'Компания',
+          'Название предприятия',
+          'company'
+        ]) || '').trim(),
         ogrn: String(getField(row, ['ОГРН', 'ogrn']) || '').trim(),
-        regNumber: String(getField(row, ['Номер регистрации РИД', 'Номер регистрации', 'Регистрационный номер', 'ridNumber']) || '').trim(),
+        address: extractAddressFromContacts(getField(row, ['Контактные данные', 'Адрес', 'address'])),
+        title: String(getField(row, ['Название', 'РИД', 'Название РИДа', 'Название РИД', 'Название патента', 'Патент', 'Разработка', 'patent']) || '').trim(),
+        regNumber: String(getField(row, ['Номер регистрации РИД', 'Номер регистрации РИДа', 'Номер регистрации', 'Регистрационный номер', 'ridNumber']) || '').trim(),
         type: String(getField(row, ['Тип', 'type']) || '').trim(),
         details: String(getField(row, ['Подробности (ФИПС)', 'Подробности', 'ФИПС', 'details']) || '').trim(),
         lat: parseNumber(getField(row, ['Широта', 'lat', 'latitude'])),
         lon: parseNumber(getField(row, ['Долгота', 'lon', 'lng', 'longitude']))
-      })).filter(row => row.company || row.address || row.patent);
+      })).filter(row => row.company || row.address || row.title || row.regNumber);
     }
 
     function groupByCompany(records) {
       const grouped = new Map();
 
       records.forEach(record => {
-        const company = record.company || 'Предприятие не указано';
+        const company = record.company || 'Владелец не указан';
         const address = record.address || 'Адрес не указан';
         const key = `${normalizeText(company)}|${normalizeText(address)}`;
 
@@ -509,55 +453,50 @@
           grouped.set(key, {
             key,
             company,
+            ogrn: record.ogrn,
             address,
             lat: record.lat,
             lon: record.lon,
-            patents: [],
-            ogrn: record.ogrn,
-            contact: record.address,
             items: []
           });
         }
 
         const item = grouped.get(key);
-
+        if (!item.ogrn && record.ogrn) item.ogrn = record.ogrn;
         if (!item.lat && record.lat) item.lat = record.lat;
         if (!item.lon && record.lon) item.lon = record.lon;
 
-        if (!item.ogrn && record.ogrn) item.ogrn = record.ogrn;
-        if (!item.contact && record.address) item.contact = record.address;
-
-        const patentItem = {
-          title: record.patent,
+        const ridItem = {
+          title: record.title,
           regNumber: record.regNumber,
           type: record.type,
           details: record.details
         };
 
         const duplicate = item.items.some(existing =>
-          existing.title === patentItem.title &&
-          existing.regNumber === patentItem.regNumber
+          existing.title === ridItem.title && existing.regNumber === ridItem.regNumber
         );
 
-        if ((patentItem.title || patentItem.regNumber) && !duplicate) {
-          item.items.push(patentItem);
-          item.patents.push(patentItem.title || patentItem.regNumber);
-        }
+        if ((ridItem.title || ridItem.regNumber) && !duplicate) item.items.push(ridItem);
       });
 
-      return Array.from(grouped.values())
-        .sort((a, b) => a.company.localeCompare(b.company, 'ru'));
+      return Array.from(grouped.values()).sort((a, b) => a.company.localeCompare(b.company, 'ru'));
     }
 
-    function buildPaconst query = company.address.includes('Россия') || company.address.includes('обл')
-        ? company.address
-        : `${company.address}, ${REGION_SUFFIX}`;ompanies.forEach(company => {
-        if (!company.patents.length) {
+    function buildRidRows(companies) {
+      const rows = [];
+
+      companies.forEach(company => {
+        if (!company.items.length) {
           rows.push({
             companyKey: company.key,
             company: company.company,
+            ogrn: company.ogrn || '',
             address: company.address,
-            patent: 'РИД не указан'
+            title: 'РИД не указан',
+            regNumber: '',
+            type: '',
+            details: ''
           });
           return;
         }
@@ -568,7 +507,7 @@
             company: company.company,
             ogrn: company.ogrn || '',
             address: company.address,
-            patent: item.title || '',
+            title: item.title || '',
             regNumber: item.regNumber || '',
             type: item.type || '',
             details: item.details || ''
@@ -583,9 +522,12 @@
       if (company.lat && company.lon) return company;
       if (!company.address || company.address === 'Адрес не указан') return company;
 
-      const qconst result = await ymaps.geocode(query, { results: 1 });
-      const first = result.geoObjects.get(0);
+      const query = company.address.includes('Россия') || company.address.includes('обл')
+        ? company.address
+        : `${company.address}, ${REGION_SUFFIX}`;
 
+      const result = await ymaps.geocode(query, { results: 1 });
+      const first = result.geoObjects.get(0);
       if (!first) return company;
 
       const coords = first.geometry.getCoordinates();
@@ -595,26 +537,23 @@
     }
 
     function makeBalloonContent(company) {
-      const patents = company.patents.length
-        ? company.patents
-        : ['РИДы не указаны'];
-
-      const patentItems = company.items.length
+      const items = company.items.length
         ? company.items.map(item => `
-            <li>
-              <b>${escapeHtml(item.title || 'Название не указано')}</b>
-              ${item.regNumber ? `<br>№ РИД: ${escapeHtml(item.regNumber)}` : ''}
-              ${item.type ? `<br>Тип: ${escapeHtml(item.type)}` : ''}
-              ${item.details ? `<br><a href="${escapeHtml(item.details)}" target="_blank">Подробности ФИПС</a>` : ''}
-            </li>
-          `).join('')
-        : patents.map(patent => `<li>${escapeHtml(patent)}</li>`).join('');
+          <li>
+            <b>${escapeHtml(item.title || 'Название не указано')}</b>
+            ${item.regNumber ? `<br>№ РИД: ${escapeHtml(item.regNumber)}` : ''}
+            ${item.type ? `<br>Тип: ${escapeHtml(item.type)}` : ''}
+            ${item.details ? `<br><a href="${escapeHtml(item.details)}" target="_blank">Подробности ФИПС</a>` : ''}
+          </li>
+        `).join('')
+        : '<li>РИД не указаны</li>';
 
       return `
         <div class="balloon-title">${escapeHtml(company.company)}</div>
         <div class="balloon-address">${escapeHtml(company.address)}</div>
-        <b>РИДы: ${company.patents.length}</b>
-        <ol class="patent-list">${patentItems}</ol>
+        ${company.ogrn ? `<div>ОГРН: ${escapeHtml(company.ogrn)}</div>` : ''}
+        <b>РИД: ${company.items.length}</b>
+        <ol class="rid-list">${items}</ol>
       `;
     }
 
@@ -623,11 +562,9 @@
         [company.lat, company.lon],
         {
           balloonContent: makeBalloonContent(company),
-          hintContent: `${company.company} — ${company.patents.length} пат.`
+          hintContent: `${company.company} — ${company.items.length} РИД`
         },
-        {
-          preset: 'islands#blueIcon'
-        }
+        { preset: 'islands#blueIcon' }
       );
 
       placemark.events.add('click', () => {
@@ -646,7 +583,6 @@
 
       companies.forEach(company => {
         if (!company.lat || !company.lon) return;
-
         const placemark = makePlacemark(company);
         placemarks.push(placemark);
         placemarksByKey.set(company.key, placemark);
@@ -655,69 +591,61 @@
 
       clusterer.add(placemarks);
 
-      if (bounds.length === 1) {
-        map.setCenter(bounds[0], 12);
-      } else if (bounds.length > 1) {
-        map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 40 });
-      }
+      if (bounds.length === 1) map.setCenter(bounds[0], 12);
+      else if (bounds.length > 1) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 40 });
     }
 
     function fillCompanySelect(selectElement, companies) {
-      selectElement.innerHTML = '<option value="">Все предприятия</option>';
-
+      selectElement.innerHTML = '<option value="">Все владельцы</option>';
       companies.forEach(company => {
         const option = document.createElement('option');
         option.value = company.key;
-        option.textContent = `${company.company} (${company.patents.length})`;
+        option.textContent = `${company.company} (${company.items.length})`;
         selectElement.appendChild(option);
       });
     }
 
     function renderCompanySelects(companies) {
       fillCompanySelect(companySelect, companies);
-      fillCompanySelect(patentCompanySelect, companies);
+      fillCompanySelect(ridCompanySelect, companies);
     }
 
     function renderCompaniesList(companies) {
       companiesList.innerHTML = '';
-
       companies.forEach(company => {
         const div = document.createElement('div');
         div.className = 'company-item';
         div.innerHTML = `
           <strong>${escapeHtml(company.company)}</strong>
           <div class="hint">${escapeHtml(company.address)}</div>
-          <span class="badge">${company.patents.length} пат.</span>
+          <span class="badge">${company.items.length} РИД</span>
         `;
-
         div.addEventListener('click', () => focusCompany(company.key));
         companiesList.appendChild(div);
       });
     }
 
-    function renderPatentsTable(rows) {
-      patentsTableBody.innerHTML = '';
-
+    function renderRidTable(rows) {
+      ridTableBody.innerHTML = '';
       rows.forEach((row, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="number-cell">${index + 1}</td>
           <td class="company-cell">${escapeHtml(row.company)}</td>
-          <td>${escapeHtml(row.ogrn || '')}</td>
+          <td>${escapeHtml(row.ogrn)}</td>
           <td class="address-cell">${escapeHtml(row.address)}</td>
-          <td>${escapeHtml(row.patent)}</td>
-          <td>${escapeHtml(row.regNumber || '')}</td>
-          <td>${escapeHtml(row.type || '')}</td>
+          <td>${escapeHtml(row.title)}</td>
+          <td>${escapeHtml(row.regNumber)}</td>
+          <td>${escapeHtml(row.type)}</td>
           <td>${row.details ? `<a href="${escapeHtml(row.details)}" target="_blank">Открыть</a>` : ''}</td>
         `;
-        patentsTableBody.appendChild(tr);
+        ridTableBody.appendChild(tr);
       });
     }
 
     function focusCompany(key) {
       const company = allCompanies.find(item => item.key === key);
       const placemark = placemarksByKey.get(key);
-
       if (!company || !placemark) return;
 
       switchTab('mapTab');
@@ -732,14 +660,12 @@
       shownCompanies = allCompanies.filter(company => {
         const text = normalizeText([
           company.company,
+          company.ogrn,
           company.address,
-          ...company.patents
+          ...company.items.flatMap(item => [item.title, item.regNumber, item.type])
         ].join(' '));
 
-        const matchesSearch = !query || text.includes(query);
-        const matchesCompany = !selectedKey || company.key === selectedKey;
-
-        return matchesSearch && matchesCompany;
+        return (!query || text.includes(query)) && (!selectedKey || company.key === selectedKey);
       });
 
       renderMap(shownCompanies);
@@ -747,41 +673,40 @@
       updateMapStatus();
     }
 
-    function applyPatentFilters() {
-      const query = normalizeText(patentSearchInput.value);
-      const selectedKey = patentCompanySelect.value;
+    function applyRidFilters() {
+      const query = normalizeText(ridSearchInput.value);
+      const selectedKey = ridCompanySelect.value;
 
-      shownPatentRows = allPatentRows.filter(row => {
-        const text = normalizeText(`${row.company} ${row.ogrn} ${row.address} ${row.patent} ${row.regNumber} ${row.type} ${row.details}`);
-        const matchesSearch = !query || text.includes(query);
-       withoutCoords ? `Не удалось поставить на карту: ${withoutCoords}` : '' === selectedKey;
-        return matchesSearch && matchesCompany;
+      shownRidRows = allRidRows.filter(row => {
+        const text = normalizeText(`${row.company} ${row.ogrn} ${row.address} ${row.title} ${row.regNumber} ${row.type} ${row.details}`);
+        return (!query || text.includes(query)) && (!selectedKey || row.companyKey === selectedKey);
       });
 
-      renderPatentsTable(shownPatentRows);
-      updatePatentsStatus();
+      renderRidTable(shownRidRows);
+      updateRidStatus();
     }
 
     function updateMapStatus(extraText = '') {
       const totalCompanies = allCompanies.length;
-      const totalPatents = allCompanies.reduce((sum, company) => sum + company.patents.length, 0);
+      const totalRid = allCompanies.reduce((sum, company) => sum + company.items.length, 0);
       const visibleCompanies = shownCompanies.length;
-      const visiblePatents = shownCompanies.reduce((sum, company) => sum + company.patents.length, 0);
+      const visibleRid = shownCompanies.reduce((sum, company) => sum + company.items.length, 0);
       const withoutCoords = allCompanies.filter(company => !company.lat || !company.lon).length;
 
       statusBlock.textContent = [
         extraText,
-        `Всего предприятий: ${totalCompanies}`,
-        `Всего РИДов: ${totalPatents}`,
-        `Показано предприятий: ${visibleCompanies}`,
-        `Показано РИДов: ${visiblePatents}`,
-        withoutCoords ? `Без координат: ${withoutCoords}` : ''
+        `Всего владельцев: ${totalCompanies}`,
+        `Всего РИД: ${totalRid}`,
+        `Показано владельцев: ${visibleCompanies}`,
+        `Показано РИД: ${visibleRid}`,
+        withoutCoords ? `Не удалось поставить на карту: ${withoutCoords}` : ''
       ].filter(Boolean).join('\n');
     }
 
-    function updatePatentsStatus() {
-      patentsStatus.textContentngth}`,
-        `Показано РИДов: ${shownPatentRows.length}`
+    function updateRidStatus() {
+      ridStatus.textContent = [
+        `Всего РИД в списке: ${allRidRows.length}`,
+        `Показано РИД: ${shownRidRows.length}`
       ].join('\n');
     }
 
@@ -801,52 +726,45 @@
 
     async function loadData() {
       const response = await fetch(DATA_FILE + '?v=' + Date.now());
-
-      if (!response.ok) {
-        throw new Error(`Не удалось загрузить ${DATA_FILE}`);
-      }
+      if (!response.ok) throw new Error(`Не удалось загрузить ${DATA_FILE}`);
 
       const rows = await response.json();
-
-   console.warn('Ошибка геокодирования:', company.address, company, error);'Файл patents.json должен содержать JSON-массив записей');
-      }
+      if (!Array.isArray(rows)) throw new Error('Файл patents.json должен содержать JSON-массив записей');
 
       const records = normalizeRawRecords(rows);
+      if (!records.length) throw new Error('В patents.json не найдено записей. Проверьте названия полей.');
 
-      if (!records.length) {
-        throw new Error('В patents.json не найдено записей. Проверьте названия колонок.');
-      }
       const grouped = groupByCompany(records);
-
       let foundCoords = 0;
       let failedCoords = 0;
 
       for (let i = 0; i < grouped.length; i++) {
         const company = grouped[i];
         statusBlock.textContent = `Геокодирование адресов: ${i + 1} из ${grouped.length}`;
-        patentsStatus.textContent = `Геокодирование адресов: ${i + 1} из ${grouped.length}`;
+        ridStatus.textContent = `Геокодирование адресов: ${i + 1} из ${grouped.length}`;
 
         try {
           await geocodeCompany(company);
           if (company.lat && company.lon) foundCoords++;
           else failedCoords++;
         } catch (error) {
-          console.warn('Ошибка геокодирования:', company, error);
+          console.warn('Ошибка геокодирования:', company.address, company, error);
           failedCoords++;
         }
       }
 
       allCompanies = grouped;
       shownCompanies = grouped;
-   nPatentRows = allPatentRows;
+      allRidRows = buildRidRows(grouped);
+      shownRidRows = allRidRows;
 
       renderCompanySelects(allCompanies);
       renderMap(shownCompanies);
       renderCompaniesList(shownCompanies);
-      renderPatentsTable(shownPatentRows);
+      renderRidTable(shownRidRows);
 
       updateMapStatus(`Данные загружены. Координаты найдены: ${foundCoords}. Не найдены: ${failedCoords}.`);
-      updatePatentsStatus();
+      updateRidStatus();
     }
 
     document.querySelectorAll('.tab-button').forEach(button => {
@@ -855,15 +773,14 @@
 
     searchInput.addEventListener('input', applyMapFilters);
     companySelect.addEventListener('change', applyMapFilters);
-
-    patentSearchInput.addEventListener('input', applyPatentFilters);
-    patentCompanySelect.addEventListener('change', applyPatentFilters);
-
     resetButton.addEventListener('click', () => {
       searchInput.value = '';
       companySelect.value = '';
       applyMapFilters();
     });
+
+    ridSearchInput.addEventListener('input', applyRidFilters);
+    ridCompanySelect.addEventListener('change', applyRidFilters);
 
     ymaps.ready(async () => {
       map = new ymaps.Map('map', {
@@ -886,7 +803,7 @@
       } catch (error) {
         console.error(error);
         statusBlock.textContent = 'Ошибка загрузки данных: ' + error.message;
-        patentsStatus.textContent = 'Ошибка загрузки данных: ' + error.message;
+        ridStatus.textContent = 'Ошибка загрузки данных: ' + error.message;
       }
     });
   </script>
