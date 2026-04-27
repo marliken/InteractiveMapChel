@@ -310,7 +310,8 @@
     const DATA_FILE = 'patents.json';
     const REGION_SUFFIX = 'Челябинская область, Россия';
     const CHELYABINSK_REGION_BOUNDS = [[52.0, 57.0], [56.5, 63.5]];
-    const MAP_DEFAULT_CENTER = [54.4, 60.9];
+    const MAP_DEFAULT_CENTER = [55.1599, 61.4026]; // центр: г. Челябинск
+    const MAP_DEFAULT_ZOOM = 7;
 
     let map;
     let clusterer;
@@ -575,18 +576,7 @@
 
       clusterer.add(placemarks);
 
-      if (bounds.length === 0) {
-        map.setBounds(CHELYABINSK_REGION_BOUNDS, {
-          checkZoomRange: true,
-          zoomMargin: 120
-        });
-      } else if (bounds.length === 1) {
-        map.setCenter(bounds[0], 10);
-      } else {
-        map.setBounds(bounds, {
-          checkZoomRange: true,
-          zoomMargin: 120
-        });
+      // Автоподгон отключен: каR, MAP_DEFAULT_ZOOM););
       }
     }
 
@@ -771,7 +761,7 @@
     ymaps.ready(async () => {
       map = new ymaps.Map('map', {
         center: MAP_DEFAULT_CENTER,
-        zoom: 6,
+        zoom: MAP_DEFAULT_ZOOM,
         controls: ['zoomControl', 'fullscreenControl', 'typeSelector']
       }, {
         minZoom: 3,
