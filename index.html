@@ -675,14 +675,8 @@
       const visibleRid = shownCompanies.reduce((sum, company) => sum + company.items.length, 0);
       const withoutCoords = allCompanies.filter(company => !company.lat || !company.lon).length;
 
-      statusBlock.textContent = [
-        extraText,
-        `Всего владельцев: ${totalCompanies}`,
-        `Всего РИД: ${totalRid}`,
-        `Показано владельцев: ${visibleCompanies}`,
-        `Показано РИД: ${visibleRid}`,
-        withoutCoords ? `Не удалось поставить на карту: ${withoutCoords}` : ''
-      ].filter(Boolean).join('\n');
+      const totalRid = allCompanies.reduce((sum, company) => sum + company.items.length, 0);
+      statusBlock.textContent = `Общее количество РИД: ${totalRid}`;
     }
 
     function updateRidStatus() {
