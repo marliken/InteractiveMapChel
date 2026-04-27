@@ -5,14 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Карта предприятий и РИД Челябинской области</title>
 
-  <!-- Leaflet / OpenStreetMap: карта без API-ключей -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <!-- Кластеризация точек -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <!-- Яндекс.Карты. ВАЖНО: ключ должен быть создан для JavaScript API и HTTP Геокодера -->
+  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=e6a6f9fe-5e50-48e8-96d4-7209b0eecb2d"></script>
 
   <style>
     * { box-sizing: border-box; }
@@ -317,12 +311,12 @@
     const REGION_SUFFIX = 'Челябинская область, Россия';
 
     let map;
-    let clusterLayer;
+    let clusterer;
     let allCompanies = [];
     let shownCompanies = [];
     let allRidRows = [];
     let shownRidRows = [];
-    const markerByKey = new Map();
+    const placemarksByKey = new Map();
 
     const searchInput = document.getElementById('searchInput');
     const companySelect = document.getElementById('companySelect');
@@ -514,19 +508,17 @@
         ? company.address
         : `${company.address}, ${REGION_SUFFIX}`;
 
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ru&q=${encodeURIComponent(query)}`;
-      const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
-      if (!response.ok) return company;
+      const result = await ymaps.geocode(query, { results: 1 });
+      const first = result.geoObjects.get(0);
+      if (!first) return company;
 
-      const data = await response.json();
-      if (!Array.isArray(data) || !data.length) return company;
-
-      company.lat = Number(data[0].lat);
-      company.lon = Number(data[0].lon);
+      const coords = first.geometry.getCoordinates();
+      company.lat = coords[0];
+      company.lon = coords[1];
       return company;
     }
 
-    function makePopupContent(company) {
+    function makeBalloonContent(company) {
       const items = company.items.length
         ? company.items.map(item => `
           <li>
@@ -547,42 +539,42 @@
       `;
     }
 
-    function makeMarker(company) {
-      const marker = L.marker([company.lat, company.lon], {
-        title: `${company.company} — ${company.items.length} РИД`
+    function makePlacemark(company) {
+      const placemark = new ymaps.Placemark(
+        [company.lat, company.lon],
+        {
+          balloonContent: makeBalloonContent(company),
+          hintContent: `${company.company} — ${company.items.length} РИД`
+        },
+        { preset: 'islands#blueIcon' }
+      );
+
+      placemark.events.add('click', () => {
+        map.setCenter([company.lat, company.lon], Math.max(map.getZoom(), 11), { duration: 300 });
       });
 
-      marker.bindPopup(makePopupContent(company), {
-        maxWidth: 520,
-        maxHeight: 420
-      });
-
-      marker.on('click', () => {
-        map.setView([company.lat, company.lon], Math.max(map.getZoom(), 11));
-      });
-
-      return marker;
+      return placemark;
     }
 
     function renderMap(companies) {
-      clusterLayer.clearLayers();
-      markerByKey.clear();
+      clusterer.removeAll();
+      placemarksByKey.clear();
 
+      const placemarks = [];
       const bounds = [];
 
       companies.forEach(company => {
         if (!company.lat || !company.lon) return;
-        const marker = makeMarker(company);
-        clusterLayer.addLayer(marker);
-        markerByKey.set(company.key, marker);
+        const placemark = makePlacemark(company);
+        placemarks.push(placemark);
+        placemarksByKey.set(company.key, placemark);
         bounds.push([company.lat, company.lon]);
       });
 
-      if (bounds.length === 1) {
-        map.setView(bounds[0], 12);
-      } else if (bounds.length > 1) {
-        map.fitBounds(bounds, { padding: [40, 40] });
-      }
+      clusterer.add(placemarks);
+
+      if (bounds.length === 1) map.setCenter(bounds[0], 12);
+      else if (bounds.length > 1) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 40 });
     }
 
     function fillCompanySelect(selectElement, companies) {
@@ -635,12 +627,12 @@
 
     function focusCompany(key) {
       const company = allCompanies.find(item => item.key === key);
-      const marker = markerByKey.get(key);
-      if (!company || !marker) return;
+      const placemark = placemarksByKey.get(key);
+      if (!company || !placemark) return;
 
       switchTab('mapTab');
-      map.setView([company.lat, company.lon], 12);
-      marker.openPopup();
+      map.setCenter([company.lat, company.lon], 12, { duration: 300 });
+      placemark.balloon.open();
     }
 
     function applyMapFilters() {
@@ -710,7 +702,10 @@
       });
 
       if (tabId === 'mapTab' && map) {
-        setTimeout(() => map.invalidateSize(), 100);
+        setTimeout(() => {
+          map.container.fitToViewport();
+          map.setZoom(map.getZoom());
+        }, 150);
       }
     }
 
@@ -741,11 +736,6 @@
           console.warn('Ошибка геокодирования:', company.address, company, error);
           failedCoords++;
         }
-
-        // Пауза нужна, чтобы публичный геокодер OpenStreetMap не блокировал массовые запросы.
-        if (i < grouped.length - 1 && !(company.lat && company.lon)) {
-          await new Promise(resolve => setTimeout(resolve, 1100));
-        }
       }
 
       allCompanies = grouped;
@@ -760,18 +750,6 @@
 
       updateMapStatus(`Данные загружены. Координаты найдены: ${foundCoords}. Не найдены: ${failedCoords}.`);
       updateRidStatus();
-    }
-
-    function initMap() {
-      map = L.map('map').setView([54.4, 60.9], 7);
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map);
-
-      clusterLayer = L.markerClusterGroup();
-      map.addLayer(clusterLayer);
     }
 
     document.querySelectorAll('.tab-button').forEach(button => {
@@ -789,8 +767,21 @@
     ridSearchInput.addEventListener('input', applyRidFilters);
     ridCompanySelect.addEventListener('change', applyRidFilters);
 
-    window.addEventListener('load', async () => {
-      initMap();
+    ymaps.ready(async () => {
+      map = new ymaps.Map('map', {
+        center: [54.4, 60.9],
+        zoom: 7,
+        controls: ['zoomControl', 'fullscreenControl', 'typeSelector']
+      });
+
+      clusterer = new ymaps.Clusterer({
+        preset: 'islands#blueClusterIcons',
+        groupByCoordinates: false,
+        clusterDisableClickZoom: false,
+        clusterOpenBalloonOnClick: true
+      });
+
+      map.geoObjects.add(clusterer);
 
       try {
         await loadData();
