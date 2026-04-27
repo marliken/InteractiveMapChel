@@ -560,19 +560,24 @@
     }
 
     function renderMap(companies) {
-      clusterer.removeAll();
-      placemarksByKey.clear();
+  clusterer.removeAll();
+  placemarksByKey.clear();
 
-      const placemarks = [];
-      const bounds = [];
+  const placemarks = [];
 
-      companies.forEach(company => {
-        if (!company.lat || !company.lon) return;
-        const placemark = makePlacemark(company);
-        placemarks.push(placemark);
-        placemarksByKey.set(company.key, placemark);
-        bounds.push([company.lat, company.lon]);
-      });
+  companies.forEach(company => {
+    if (!company.lat || !company.lon) return;
+
+    const placemark = makePlacemark(company);
+    placemarks.push(placemark);
+    placemarksByKey.set(company.key, placemark);
+  });
+
+  clusterer.add(placemarks);
+
+  // ❗ фиксированная позиция карты (как ты хотел)
+  map.setCenter([55.1599, 61.4026], 7);
+}
 
       clusterer.add(placemarks);
 
