@@ -309,6 +309,7 @@
   <script>
     const DATA_FILE = 'patents.json';
     const REGION_SUFFIX = 'Челябинская область, Россия';
+    const CHELYABINSK_REGION_BOUNDS = [[52.0, 57.0], [56.5, 63.5]];
 
     let map;
     let clusterer;
@@ -757,9 +758,18 @@
 
     ymaps.ready(async () => {
       map = new ymaps.Map('map', {
-        center: [54.4, 60.9], // центр Челябинской области
-        zoom: 7, // сразу нормальный масштаб области
+        center: [54.4, 60.9],
+        zoom: 7,
         controls: ['zoomControl', 'fullscreenControl', 'typeSelector']
+      }, {
+        restrictMapArea: CHELYABINSK_REGION_BOUNDS,
+        minZoom: 6,
+        maxZoom: 18
+      });
+
+      map.setBounds(CHELYABINSK_REGION_BOUNDS, {
+        checkZoomRange: true,
+        zoomMargin: 20
       });
 
       clusterer = new ymaps.Clusterer({
