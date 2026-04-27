@@ -763,13 +763,13 @@
         controls: ['zoomControl', 'fullscreenControl', 'typeSelector']
       }, {
         restrictMapArea: CHELYABINSK_REGION_BOUNDS,
-        minZoom: 6,
+        minZoom: 4, // ослабили ограничение (можно дальше отъезжать)
         maxZoom: 18
       });
 
       map.setBounds(CHELYABINSK_REGION_BOUNDS, {
         checkZoomRange: true,
-        zoomMargin: 20
+        zoomMargin: 80 // меньше «зажимает» область
       });
 
       clusterer = new ymaps.Clusterer({
