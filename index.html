@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Карта РИД Челябинской области</title>
+  <title>Карта предприятий и РИДов Челябинской области</title>
 
   <!-- Яндекс.Карты -->
   <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU"></script>
@@ -273,12 +273,12 @@
 </head>
 <body>
   <header>
-    <h1>Карта РИД Челябинской области</h1>
-    <p>Одна точка на карте соответствует одному владельцу РИД. В карточке отображается список РИД.</p>
+    <h1>Карта предприятий и РИДов Челябинской области</h1>
+    <p>Одна точка на карте соответствует одному владельцу РИДа. В карточке отображается список РИД.</p>
 
     <nav class="tabs">
       <button class="tab-button active" data-tab="mapTab">Интерактивная карта</button>
-      <button class="tab-button" data-tab="patentsTab">Список РИД</button>
+      <button class="tab-button" data-tab="patentsTab">Список РИДов</button>
     </nav>
   </header>
 
@@ -342,7 +342,7 @@
           <thead>
             <tr>
               <th class="number-cell">№</th>
-              <th class="company-cell">Владелец РИД</th>
+              <th class="company-cell">Владелец РИДа</th>
               <th>ОГРН</th>
               <th class="address-cell">Контактные данные</th>
               <th>Название</th>
@@ -418,11 +418,76 @@
       return Number.isFinite(number) ? number : null;
     }
 
+    function extractAddressFromContacts(value) {
+      const text = String(value ?? '').replace(/\r/g, '\n').trim();
+      if (!text) return '';
+
+      const lines = text
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean);
+
+      const serviceWords = [
+        'телефон', 'phone', 'e-mail', 'email', 'mail', 'web', 'сайт', 'соцсети',
+        'www.', 'http://', 'https://', '@', '+7', '8 ('
+      ];
+
+      const addressLines = [];
+
+      for (const line of lines) {
+        const low = normalizeText(line);
+        const isServiceLine = serviceWords.some(word => low.includes(normalizeText(word)));
+
+        if (isServiceLine && addressLines.length > 0) break;
+        if (isServiceLine) continue;
+
+        addressLines.push(
+          line
+            .replace(/^адрес\\s*/i, '')
+            .replace(/^адрес:\\s*/i, '')
+            .trim()
+        );
+      }
+
+      return addressLines.join(' ').replace(/\\s+/g, ' ').trim();
+    }
+
+    function extractAddressFromContacts(value) {
+      const text = String(value address: extractAddressFromContacts(getField(row, ['Контактные данные', 'Адрес', 'address'])),xt
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean);
+
+      const serviceWords = [
+        'телефон', 'phone', 'e-mail', 'email', 'mail', 'web', 'сайт', 'соцсети',
+        'www.', 'http://', 'https://', '@', '+7', '8 ('
+      ];
+
+      const addressLines = [];
+
+      for (const line of lines) {
+        const low = normalizeText(line);
+        const isServiceLine = serviceWords.some(word => low.includes(normalizeText(word)));
+
+        if (isServiceLine && addressLines.length > 0) break;
+        if (isServiceLine) continue;
+
+        addressLines.push(
+          line
+            .replace(/^адрес\s*/i, '')
+            .replace(/^адрес:\s*/i, '')
+            .trim()
+        );
+      }
+
+      return addressLines.join(' ').replace(/\s+/g, ' ').trim();
+    }
+
     function normalizeRawRecords(rows) {
       return rows.map(row => ({
         address: String(getField(row, ['Контактные данные', 'Адрес', 'address']) || '').trim(),
-        company: String(getField(row, ['Наименование владельца патента', 'Предприятие', 'Организация', 'Компания', 'Название предприятия', 'company']) || '').trim(),
-        patent: String(getField(row, ['Название', 'Патент', 'Название патента', 'Разработка', 'patent']) || '').trim(),
+        company: String(getField(row, ['Наименование владельца РИДа', 'Наименование владельца РИД', 'Наименование владельца патента', 'Владелец РИДа', 'Владелец патента', 'Предприятие', 'Организация', 'Компания', 'Название предприятия', 'company']) || '').trim(),
+        patent: String(getField(row, ['Название', 'РИД', 'Название РИДа', 'Название РИД', 'Название патента', 'Патент', 'Разработка', 'patent']) || '').trim(),
         ogrn: String(getField(row, ['ОГРН', 'ogrn']) || '').trim(),
         regNumber: String(getField(row, ['Номер регистрации РИД', 'Номер регистрации', 'Регистрационный номер', 'ridNumber']) || '').trim(),
         type: String(getField(row, ['Тип', 'type']) || '').trim(),
@@ -484,16 +549,15 @@
         .sort((a, b) => a.company.localeCompare(b.company, 'ru'));
     }
 
-    function buildPatentRows(companies) {
-      const rows = [];
-
-      companies.forEach(company => {
+    function buildPaconst query = company.address.includes('Россия') || company.address.includes('обл')
+        ? company.address
+        : `${company.address}, ${REGION_SUFFIX}`;ompanies.forEach(company => {
         if (!company.patents.length) {
           rows.push({
             companyKey: company.key,
             company: company.company,
             address: company.address,
-            patent: 'Патент не указан'
+            patent: 'РИД не указан'
           });
           return;
         }
@@ -519,8 +583,7 @@
       if (company.lat && company.lon) return company;
       if (!company.address || company.address === 'Адрес не указан') return company;
 
-      const query = `${company.address}, ${REGION_SUFFIX}`;
-      const result = await ymaps.geocode(query, { results: 1 });
+      const qconst result = await ymaps.geocode(query, { results: 1 });
       const first = result.geoObjects.get(0);
 
       if (!first) return company;
@@ -534,7 +597,7 @@
     function makeBalloonContent(company) {
       const patents = company.patents.length
         ? company.patents
-        : ['Патенты не указаны'];
+        : ['РИДы не указаны'];
 
       const patentItems = company.items.length
         ? company.items.map(item => `
@@ -550,7 +613,7 @@
       return `
         <div class="balloon-title">${escapeHtml(company.company)}</div>
         <div class="balloon-address">${escapeHtml(company.address)}</div>
-        <b>Патенты: ${company.patents.length}</b>
+        <b>РИДы: ${company.patents.length}</b>
         <ol class="patent-list">${patentItems}</ol>
       `;
     }
@@ -691,7 +754,7 @@
       shownPatentRows = allPatentRows.filter(row => {
         const text = normalizeText(`${row.company} ${row.ogrn} ${row.address} ${row.patent} ${row.regNumber} ${row.type} ${row.details}`);
         const matchesSearch = !query || text.includes(query);
-        const matchesCompany = !selectedKey || row.companyKey === selectedKey;
+       withoutCoords ? `Не удалось поставить на карту: ${withoutCoords}` : '' === selectedKey;
         return matchesSearch && matchesCompany;
       });
 
@@ -709,17 +772,16 @@
       statusBlock.textContent = [
         extraText,
         `Всего предприятий: ${totalCompanies}`,
-        `Всего патентов: ${totalPatents}`,
+        `Всего РИДов: ${totalPatents}`,
         `Показано предприятий: ${visibleCompanies}`,
-        `Показано патентов: ${visiblePatents}`,
+        `Показано РИДов: ${visiblePatents}`,
         withoutCoords ? `Без координат: ${withoutCoords}` : ''
       ].filter(Boolean).join('\n');
     }
 
     function updatePatentsStatus() {
-      patentsStatus.textContent = [
-        `Всего патентов в списке: ${allPatentRows.length}`,
-        `Показано патентов: ${shownPatentRows.length}`
+      patentsStatus.textContentngth}`,
+        `Показано РИДов: ${shownPatentRows.length}`
       ].join('\n');
     }
 
@@ -738,14 +800,22 @@
     }
 
     async function loadData() {
-      const response = await fetch(DATA_FILE);
+      const response = await fetch(DATA_FILE + '?v=' + Date.now());
 
       if (!response.ok) {
         throw new Error(`Не удалось загрузить ${DATA_FILE}`);
       }
 
       const rows = await response.json();
+
+   console.warn('Ошибка геокодирования:', company.address, company, error);'Файл patents.json должен содержать JSON-массив записей');
+      }
+
       const records = normalizeRawRecords(rows);
+
+      if (!records.length) {
+        throw new Error('В patents.json не найдено записей. Проверьте названия колонок.');
+      }
       const grouped = groupByCompany(records);
 
       let foundCoords = 0;
@@ -768,8 +838,7 @@
 
       allCompanies = grouped;
       shownCompanies = grouped;
-      allPatentRows = buildPatentRows(grouped);
-      shownPatentRows = allPatentRows;
+   nPatentRows = allPatentRows;
 
       renderCompanySelects(allCompanies);
       renderMap(shownCompanies);
@@ -816,8 +885,8 @@
         await loadData();
       } catch (error) {
         console.error(error);
-        statusBlock.textContent = 'Ошибка загрузки данных. Проверьте, что рядом с index.html есть файл patents.json.';
-        patentsStatus.textContent = 'Ошибка загрузки данных. Проверьте, что рядом с index.html есть файл patents.json.';
+        statusBlock.textContent = 'Ошибка загрузки данных: ' + error.message;
+        patentsStatus.textContent = 'Ошибка загрузки данных: ' + error.message;
       }
     });
   </script>
