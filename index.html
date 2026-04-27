@@ -310,6 +310,7 @@
     const DATA_FILE = 'patents.json';
     const REGION_SUFFIX = 'Челябинская область, Россия';
     const CHELYABINSK_REGION_BOUNDS = [[52.0, 57.0], [56.5, 63.5]];
+    const MAP_DEFAULT_CENTER = [54.4, 60.9];
 
     let map;
     let clusterer;
@@ -574,8 +575,19 @@
 
       clusterer.add(placemarks);
 
-      if (bounds.length === 1) map.setCenter(bounds[0], 12);
-      else if (bounds.length > 1) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 40 });
+      if (bounds.length === 0) {
+        map.setBounds(CHELYABINSK_REGION_BOUNDS, {
+          checkZoomRange: true,
+          zoomMargin: 120
+        });
+      } else if (bounds.length === 1) {
+        map.setCenter(bounds[0], 10);
+      } else {
+        map.setBounds(bounds, {
+          checkZoomRange: true,
+          zoomMargin: 120
+        });
+      }
     }
 
     function fillCompanySelect(selectElement, companies) {
@@ -758,18 +770,17 @@
 
     ymaps.ready(async () => {
       map = new ymaps.Map('map', {
-        center: [54.4, 60.9],
-        zoom: 7,
+        center: MAP_DEFAULT_CENTER,
+        zoom: 6,
         controls: ['zoomControl', 'fullscreenControl', 'typeSelector']
       }, {
-        restrictMapArea: CHELYABINSK_REGION_BOUNDS,
-        minZoom: 4, // ослабили ограничение (можно дальше отъезжать)
+        minZoom: 3,
         maxZoom: 18
       });
 
       map.setBounds(CHELYABINSK_REGION_BOUNDS, {
         checkZoomRange: true,
-        zoomMargin: 80 // меньше «зажимает» область
+        zoomMargin: 120
       });
 
       clusterer = new ymaps.Clusterer({
