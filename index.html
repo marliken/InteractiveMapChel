@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Карта инновационного ландшафта Челябинской области</title>
+
+  <!-- Яндекс.Карты -->
+  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=e6a6f9fe-5e50-48e8-96d4-7209b0eecb2d"></script>
+
+  <!-- SheetJS для экспорта XLSX -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #222; }
+    header { padding: 14px 22px 0; background: #1f4e79; color: white; }
+    header h1 { margin: 0 0 4px; font-size: 21px; }
+    header p { margin: 0 0 12px; font-size: 14px; opacity: 0.9; }
+    .tabs { display: flex; gap: 4px; }
+    .tab-button { width: auto; margin: 0; padding: 11px 18px; border: 0; border-radius: 8px 8px 0 0; background: rgba(255,255,255,.16); color: white; font-weight: 700; cursor: pointer; }
+    .tab-button.active { background: #f4f6f8; color: #1f4e79; }
+    .tab-content { display: none; height: calc(100vh - 119px); }
+    .tab-content.active { display: block; }
+    .layout { display: grid; grid-template-columns: 360px 1fr; height: 100%; }
+    .sidebar { padding: 14px; background: #fff; border-right: 1px solid #d9e0e7; overflow-y: auto; }
+    #map { width: 100%; height: 100%; }
+    .card { padding: 13px; margin-bottom: 12px; border: 1px solid #d9e0e7; border-radius: 10px; background: white; }
+    label { display: block; margin-bottom: 7px; font-weight: 700; font-size: 14px; }
+    input, select, button { width: 100%; padding: 9px; border: 1px solid #c7d0d9; border-radius: 8px; font-size: 14px; }
+    button { border: 0; background: #1f4e79; color: white; font-weight: 700; cursor: pointer; margin-top: 8px; }
+    button:hover { background: #163a5b; }
+    .button-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .status { font-size: 14px; line-height: 1.45; white-space: pre-line; }
+    .hint { font-size: 12px; color: #66717c; line-height: 1.45; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 13px; }
+    .checkbox-row input { width: auto; }
+    .layer-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .company-item { padding: 10px 0; border-bottom: 1px solid #e7ecf1; font-size: 13px; cursor: pointer; }
+    .company-item:hover { background: #f5f8fb; }
+    .company-item strong { display: block; margin-bottom: 4px; }
+    .badge { display: inline-block; margin-top: 4px; padding: 3px 7px; border-radius: 999px; background: #e8f0f7; color: #1f4e79; font-size: 12px; font-weight: 700; }
+    .rid-list { max-height: 260px; overflow-y: auto; padding-left: 18px; margin: 8px 0 0; }
+    .rid-list li { margin-bottom: 8px; }
+    .balloon-section { margin-top: 8px; font-size: 13px; line-height: 1.45; }
+    .balloon-section summary { cursor: pointer; font-weight: 700; }
+    .multiline { white-space: pre-line; }
+    .list-page { height: 100%; padding: 18px; overflow: auto; }
+    .list-toolbar { display: grid; grid-template-columns: 1fr 260px 220px; gap: 12px; margin-bottom: 14px; }
+    .table-wrap { background: white; border: 1px solid #d9e0e7; border-radius: 10px; overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 10px; border-bottom: 1px solid #e7ecf1; vertical-align: top; text-align: left; }
+    th { position: sticky; top: 0; background: #edf3f8; color: #1f4e79; z-index: 1; }
+    tr:hover td { background: #f7fafc; }
+    .number-cell { width: 60px; color: #66717c; }
+    .company-cell { width: 22%; font-weight: 700; }
+    .address-cell { width: 22%; color: #555; }
+    @media (max-width: 1024px) {
+      .tab-content { height: auto; min-height: calc(100vh - 119px); }
+      .layout { grid-template-columns: 1fr; grid-template-rows: auto 60vh; }
+      .sidebar { max-height: 48vh; border-right: 0; border-bottom: 1px solid #d9e0e7; }
+      .list-toolbar { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Карта инновационного ландшафта Челябинской области</h1>
+    <p>Интерактивная карта организаций, РИД и элементов инновационной инфраструктуры региона.</p>
+    <nav class="tabs">
+      <button class="tab-button active" data-tab="mapTab">Интерактивная карта</button>
+      <button class="tab-button" data-tab="ridTab">Список объектов</button>
+    </nav>
+  </header>
+
+  <section id="mapTab" class="tab-content active">
+    <main class="layout">
+      <aside class="sidebar">
+        <div class="card"><label>Слои данных</label><div id="layerControls"></div></div>
+        <div class="card"><label for="searchInput">Единый поиск</label><input id="searchInput" type="text" placeholder="Название, ОГРН/ИНН, адрес, РИД, ОКВЭД" /></div>
+        <div class="card">
+          <label for="companySelect">Организация</label><select id="companySelect"><option value="">Все организации</option></select>
+          <label for="municipalitySelect" style="margin-top:10px;">Муниципальное образование</label><select id="municipalitySelect"><option value="">Все муниципалитеты</option></select>
+          <label for="ridTypeSelect" style="margin-top:10px;">Тип объекта</label><select id="ridTypeSelect"><option value="">Все типы</option></select>
+          <label for="yearFromInput" style="margin-top:10px;">Год регистрации</label>
+          <div class="button-row"><input id="yearFromInput" type="number" placeholder="от" /><input id="yearToInput" type="number" placeholder="до" /></div>
+          <button id="applyButton">Применить фильтры</button><button id="resetButton">Сбросить всё</button>
+        </div>
+        <div class="card"><label>Экспорт</label><div class="button-row"><button id="csvButton">CSV</button><button id="xlsxButton">XLSX</button></div></div>
+        <div class="card"><div id="status" class="status">Загрузка данных...</div></div>
+        <div class="card"><strong>Организации</strong><div id="companiesList"></div></div>
+      </aside>
+      <section><div id="map"></div></section>
+    </main>
+  </section>
+
+  <section id="ridTab" class="tab-content">
+    <div class="list-page">
+      <div class="list-toolbar">
+        <div class="card"><label for="ridSearchInput">Поиск по списку</label><input id="ridSearchInput" type="text" placeholder="Организация, адрес, название, номер, тип, ОКВЭД" /></div>
+        <div class="card"><label for="ridCompanySelect">Организация</label><select id="ridCompanySelect"><option value="">Все организации</option></select></div>
+        <div class="card"><label>Экспорт списка</label><div class="button-row"><button id="csvListButton">CSV</button><button id="xlsxListButton">XLSX</button></div></div>
+      </div>
+      <div class="card"><div id="ridStatus" class="status">Загрузка списка...</div></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th class="number-cell">№</th><th>Слой</th><th class="company-cell">Организация</th><th>ОГРН</th><th>ИНН</th><th class="address-cell">Адрес</th><th>Название РИД / объект</th><th>Номер регистрации</th><th>Тип</th><th>Год</th><th>Вид деятельности / ОКВЭД / МПК</th><th>Работники, 2024</th><th>Доходы, 2024</th><th>Описание / программа</th><th>Ссылка</th></tr></thead>
+          <tbody id="ridTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const DATA_FILE = 'patents.json';
+    const MAP_DEFAULT_CENTER = [55.1599, 61.4026];
+    const MAP_DEFAULT_ZOOM = 7;
+
+    const LAYERS = {
+      industry: { label: 'Промышленные предприятия с РИД', color: '#1e88e5', preset: 'islands#blueFactoryIcon' },
+      university: { label: 'Вузы и образовательные организации', color: '#43a047', preset: 'islands#greenEducationIcon' },
+      support: { label: 'Фонды поддержки и институты развития', color: '#fb8c00', preset: 'islands#orangeGovernmentIcon' },
+      rnd: { label: 'Центры промышленных НИОКР', color: '#8e24aa', preset: 'islands#violetScienceIcon' },
+      it: { label: 'Разработчики цифровых решений', color: '#00acc1', preset: 'islands#lightBlueComputerIcon' },
+      other: { label: 'Прочие организации', color: '#607d8b', preset: 'islands#grayIcon' }
+    };
+
+    let map, clusterer, allCompanies = [], shownCompanies = [], allRows = [], shownRows = [];
+    const placemarksByKey = new Map();
+    const el = id => document.getElementById(id);
+    const layerControls = el('layerControls'), searchInput = el('searchInput'), companySelect = el('companySelect'), municipalitySelect = el('municipalitySelect'), ridTypeSelect = el('ridTypeSelect'), yearFromInput = el('yearFromInput'), yearToInput = el('yearToInput'), applyButton = el('applyButton'), resetButton = el('resetButton'), statusBlock = el('status'), companiesList = el('companiesList'), ridSearchInput = el('ridSearchInput'), ridCompanySelect = el('ridCompanySelect'), ridStatus = el('ridStatus'), ridTableBody = el('ridTableBody');
+
+    function escapeHtml(value) { return String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'", '&#039;'); }
+    function formatMultiline(value) { return escapeHtml(value).replaceAll('\n', '<br>'); }
+    function normalizeText(value) { return String(value ?? '').trim().toLowerCase().replaceAll('ё','е'); }
+    function parseNumber(value) { const text = String(value ?? '').replaceAll(' ', '').replace(',', '.').trim(); if (!text) return null; const n = Number(text); return Number.isFinite(n) ? n : null; }
+    function formatInteger(value) { const n = parseNumber(value); return n === null ? String(value ?? '') : new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(n); }
+    function formatMoney(value) { const n = parseNumber(value); return n === null ? String(value ?? '') : new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(n); }
+    function safeUrl(value) { const text = String(value ?? '').trim(); return /^https?:\/\//i.test(text) ? text : ''; }
+    function getField(row, names) { const norm = {}; Object.keys(row).forEach(k => norm[normalizeText(k)] = row[k]); for (const name of names) { const value = norm[normalizeText(name)]; if (value !== undefined && value !== null && String(value).trim() !== '') return value; } return ''; }
+
+    function detectLayer(row) {
+      const raw = normalizeText(getField(row, ['Слой','Тип организации','Категория','Категория организации','layer','category']));
+      const okved = normalizeText(getField(row, ['ОКВЭД','okved']));
+      const company = normalizeText(getField(row, ['Наименование владельца РИД','Наименование владельца РИДа','Предприятие','Организация','Компания','Название предприятия','company']));
+      if (raw.includes('вуз') || raw.includes('образ')) return 'university';
+      if (raw.includes('фонд') || raw.includes('поддерж') || raw.includes('институт')) return 'support';
+      if (raw.includes('ниокр') || raw.includes('исслед')) return 'rnd';
+      if (raw.includes('ит') || raw.includes('цифров') || raw.includes('разработчик')) return 'it';
+      if (raw.includes('пром')) return 'industry';
+      if (okved.startsWith('72.1')) return 'rnd';
+      if (okved.startsWith('62')) return 'it';
+      if (company.includes('университет') || company.includes('институт') || company.includes('академия')) return 'university';
+      return 'industry';
+    }
+
+    function getYear(row) { const value = String(getField(row, ['Год регистрации','Год','Год публикации','Publication Year','year']) || ''); const match = value.match(/(19|20)\d{2}/); return match ? Number(match[0]) : null; }
+
+    function normalizeRawRecords(rows) {
+      return rows.map(row => {
+        const activity = String(getField(row, ['Вид деятельности/отрасль','Вид деятельности','Отрасль','activity']) || '').trim();
+        const supportProgram = String(getField(row, ['Программа поддержки','Меры поддержки','supportProgram']) || '').trim();
+        return {
+          layer: detectLayer(row),
+          company: String(getField(row, ['Наименование владельца РИД','Наименование владельца РИДа','Владелец РИД','Владелец РИДа','Предприятие','Организация','Компания','Название предприятия','company']) || '').trim(),
+          ogrn: String(getField(row, ['ОГРН','ogrn']) || '').trim(),
+          inn: String(getField(row, ['ИНН','inn']) || '').trim(),
+          address: String(getField(row, ['Адрес','address']) || '').trim(),
+          contacts: String(getField(row, ['Контактные данные','contacts']) || '').trim(),
+          municipality: String(getField(row, ['Муниципалитет','Муниципальное образование','municipality']) || '').trim(),
+          title: String(getField(row, ['Название РИД','Название','РИД','Название РИДа','Название патента','Патент','Разработка','Название РИД / объекта','patent']) || supportProgram || activity || '').trim(),
+          regNumber: String(getField(row, ['Номер регистрации РИД','Номер регистрации РИДа','Номер регистрации','Регистрационный номер','ridNumber']) || '').trim(),
+          type: String(getField(row, ['Тип','Вид РИД','Тип объекта','type']) || '').trim(),
+          year: getYear(row),
+          okved: String(getField(row, ['ОКВЭД','okved']) || '').trim(),
+          mpk: String(getField(row, ['МПК','Рубрика МПК','mpk']) || '').trim(),
+          site: String(getField(row, ['Сайт','site','url']) || '').trim(),
+          details: String(getField(row, ['ФИПС','Подробности (ФИПС)','Подробности','details','link']) || '').trim(),
+          lat: parseNumber(getField(row, ['Широта','lat','latitude'])),
+          lon: parseNumber(getField(row, ['Долгота','lon','lng','longitude'])),
+          shortName: String(getField(row, ['Краткое наименование','shortName']) || '').trim(),
+          fullName: String(getField(row, ['Полное наименование','Наименование полное','fullName']) || '').trim(),
+          activity,
+          employees2024: String(getField(row, ['Среднесписочная численность работников, 2024','2024, Среднесписочная численность работников','employees2024']) || '').trim(),
+          revenue2024: String(getField(row, ['Доходы, 2024, RUB','2024, Доходы, RUB','revenue2024']) || '').trim(),
+          description: String(getField(row, ['Описание компании','description']) || '').trim(),
+          supportProgram,
+          comment: String(getField(row, ['Комментарий','Коммантарий','comment']) || '').trim(),
+          source: String(getField(row, ['Источник данных','source']) || '').trim()
+        };
+      }).filter(r => r.company || r.address || r.title || r.regNumber);
+    }
+
+    function groupByCompany(records) {
+      const grouped = new Map();
+      records.forEach(record => {
+        const company = record.company || 'Организация не указана', address = record.address || 'Адрес не указан';
+        const identity = record.ogrn || record.inn || company;
+        const key = `${record.layer}|${normalizeText(identity)}|${normalizeText(address)}`;
+        if (!grouped.has(key)) grouped.set(key, { key, layer: record.layer, company, ogrn: record.ogrn, inn: record.inn, address, contacts: record.contacts, municipality: record.municipality, okved: record.okved, site: record.site, lat: record.lat, lon: record.lon, shortName: record.shortName, fullName: record.fullName, activity: record.activity, employees2024: record.employees2024, revenue2024: record.revenue2024, description: record.description, supportProgram: record.supportProgram, comment: record.comment, source: record.source, items: [] });
+        const item = grouped.get(key);
+        for (const field of ['ogrn','inn','contacts','municipality','okved','site','shortName','fullName','activity','employees2024','revenue2024','description','supportProgram','comment','source']) {
+          if (!item[field] && record[field]) item[field] = record[field];
+        }
+        if (!item.lat && record.lat) item.lat = record.lat;
+        if (!item.lon && record.lon) item.lon = record.lon;
+        const rid = { title: record.title, regNumber: record.regNumber, type: record.type, year: record.year, mpk: record.mpk, details: record.details };
+        const duplicate = item.items.some(x => x.title === rid.title && x.regNumber === rid.regNumber && x.type === rid.type);
+        if ((rid.title || rid.regNumber || rid.type) && !duplicate) item.items.push(rid);
+      });
+      return Array.from(grouped.values()).sort((a,b) => a.company.localeCompare(b.company, 'ru'));
+    }
+
+    function buildRows(companies) {
+      const rows = [];
+      companies.forEach(c => {
+        const layerName = (LAYERS[c.layer] || LAYERS.other).label;
+        const common = { companyKey: c.key, layer: c.layer, layerName, company: c.company, ogrn: c.ogrn || '', inn: c.inn || '', address: c.address, municipality: c.municipality || '', okved: c.okved || '', shortName: c.shortName || '', fullName: c.fullName || '', activity: c.activity || '', employees2024: c.employees2024 || '', revenue2024: c.revenue2024 || '', description: c.description || '', supportProgram: c.supportProgram || '', comment: c.comment || '', contacts: c.contacts || '', site: c.site || '', source: c.source || '' };
+        if (!c.items.length) { rows.push({ ...common, title: 'Объект не указан', regNumber: '', type: '', year: '', mpk: '', details: c.site || '' }); return; }
+        c.items.forEach(item => rows.push({ ...common, title: item.title || '', regNumber: item.regNumber || '', type: item.type || '', year: item.year || '', mpk: item.mpk || '', details: item.details || c.site || '' }));
+      });
+      return rows;
+    }
+
+    function makeBalloonContent(company) {
+      const layer = LAYERS[company.layer] || LAYERS.other;
+      const items = company.items.length ? company.items.map(item => {
+        const sourceLink = safeUrl(item.details);
+        return `<li><b>${escapeHtml(item.title || 'Название не указано')}</b>${item.regNumber ? `<br>№ регистрации: ${escapeHtml(item.regNumber)}` : ''}${item.type ? `<br>Тип: ${escapeHtml(item.type)}` : ''}${item.year ? `<br>Год: ${escapeHtml(item.year)}` : ''}${item.mpk ? `<br>МПК: ${escapeHtml(item.mpk)}` : ''}${sourceLink ? `<br><a href="${escapeHtml(sourceLink)}" target="_blank" rel="noopener">Открыть источник</a>` : ''}</li>`;
+      }).join('') : '<li>Объекты не указаны</li>';
+      const siteLink = safeUrl(company.site);
+      const extra = [];
+      if (company.fullName && normalizeText(company.fullName) !== normalizeText(company.company)) extra.push(`<div><b>Полное наименование:</b> ${escapeHtml(company.fullName)}</div>`);
+      if (company.ogrn) extra.push(`<div><b>ОГРН:</b> ${escapeHtml(company.ogrn)}</div>`);
+      if (company.inn) extra.push(`<div><b>ИНН:</b> ${escapeHtml(company.inn)}</div>`);
+      if (company.contacts) extra.push(`<div><b>Контакты:</b><div class="multiline">${formatMultiline(company.contacts)}</div></div>`);
+      if (company.activity) extra.push(`<div><b>Вид деятельности:</b> ${escapeHtml(company.activity)}</div>`);
+      if (company.okved) extra.push(`<div><b>ОКВЭД:</b> ${escapeHtml(company.okved)}</div>`);
+      if (company.employees2024) extra.push(`<div><b>Работники, 2024:</b> ${escapeHtml(formatInteger(company.employees2024))}</div>`);
+      if (company.revenue2024) extra.push(`<div><b>Доходы, 2024:</b> ${escapeHtml(formatMoney(company.revenue2024))}</div>`);
+      if (siteLink) extra.push(`<div><a href="${escapeHtml(siteLink)}" target="_blank" rel="noopener">Сайт организации</a></div>`);
+      if (company.description) extra.push(`<details class="balloon-section"><summary>Описание компании</summary><div class="multiline">${formatMultiline(company.description)}</div></details>`);
+      if (company.supportProgram) extra.push(`<details class="balloon-section"><summary>Программа поддержки</summary><div class="multiline">${formatMultiline(company.supportProgram)}</div></details>`);
+      if (company.comment) extra.push(`<details class="balloon-section"><summary>Комментарий</summary><div class="multiline">${formatMultiline(company.comment)}</div></details>`);
+      return `<div style="font-weight:700;font-size:15px;margin-bottom:6px;">${escapeHtml(company.company)}</div><div style="margin-bottom:6px;"><span style="color:${layer.color};font-weight:700;">●</span> ${escapeHtml(layer.label)}</div><div style="margin-bottom:8px;color:#555;font-size:13px;">${escapeHtml(company.address)}</div>${extra.join('')}<div class="balloon-section"><b>РИД / объекты: ${company.items.length}</b><ol class="rid-list">${items}</ol></div>`;
+    }
+
+    function makePlacemark(company) {
+      const layer = LAYERS[company.layer] || LAYERS.other;
+      const placemark = new ymaps.Placemark([company.lat, company.lon], { balloonContent: makeBalloonContent(company), hintContent: `${company.company} – ${company.items.length} объектов` }, { preset: layer.preset, iconColor: layer.color });
+      placemark.events.add('click', () => map.setCenter([company.lat, company.lon], Math.max(map.getZoom(), 11), { duration: 300 }));
+      return placemark;
+    }
+
+    function getSelectedLayers() { return Array.from(document.querySelectorAll('[data-layer-checkbox]')).filter(x => x.checked).map(x => x.value); }
+
+    function passesFilters(company) {
+      const selectedLayers = getSelectedLayers();
+      if (!selectedLayers.includes(company.layer)) return false;
+      if (companySelect.value && company.key !== companySelect.value) return false;
+      if (municipalitySelect.value && company.municipality !== municipalitySelect.value) return false;
+      const ridType = ridTypeSelect.value, yearFrom = parseNumber(yearFromInput.value), yearTo = parseNumber(yearToInput.value), query = normalizeText(searchInput.value);
+      const text = normalizeText([company.company, company.shortName, company.fullName, company.ogrn, company.inn, company.address, company.contacts, company.municipality, company.okved, company.activity, company.description, company.supportProgram, company.comment, company.employees2024, company.revenue2024, ...company.items.flatMap(i => [i.title, i.regNumber, i.type, i.year, i.mpk])].join(' '));
+      if (query && !text.includes(query)) return false;
+      if (ridType && !company.items.some(i => i.type === ridType)) return false;
+      if (yearFrom && !company.items.some(i => Number(i.year) >= yearFrom)) return false;
+      if (yearTo && !company.items.some(i => Number(i.year) <= yearTo)) return false;
+      return true;
+    }
+
+    function renderMap(companies) {
+      clusterer.removeAll(); placemarksByKey.clear();
+      const placemarks = [];
+      companies.forEach(company => { if (!company.lat || !company.lon) return; const pm = makePlacemark(company); placemarks.push(pm); placemarksByKey.set(company.key, pm); });
+      clusterer.add(placemarks);
+      map.setCenter(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM);
+    }
+
+    function fillSelect(select, values, allText) {
+      select.innerHTML = `<option value="">${allText}</option>`;
+      values.filter(Boolean).sort((a,b) => String(a).localeCompare(String(b), 'ru')).forEach(v => { const option = document.createElement('option'); option.value = v; option.textContent = v; select.appendChild(option); });
+    }
+
+    function renderLayerControls() {
+      layerControls.innerHTML = Object.entries(LAYERS).map(([key, layer]) => `<label class="checkbox-row"><input type="checkbox" data-layer-checkbox value="${key}" checked /><span class="layer-dot" style="background:${layer.color}"></span><span>${layer.label}</span></label>`).join('');
+      document.querySelectorAll('[data-layer-checkbox]').forEach(cb => cb.addEventListener('change', applyFilters));
+    }
+
+    function renderFilters() {
+      fillSelect(companySelect, allCompanies.map(c => c.key), 'Все организации');
+      Array.from(companySelect.options).forEach(opt => { if (!opt.value) return; const c = allCompanies.find(x => x.key === opt.value); if (c) opt.textContent = `${c.company} (${c.items.length})`; });
+      fillSelect(ridCompanySelect, allCompanies.map(c => c.key), 'Все организации');
+      Array.from(ridCompanySelect.options).forEach(opt => { if (!opt.value) return; const c = allCompanies.find(x => x.key === opt.value); if (c) opt.textContent = `${c.company} (${c.items.length})`; });
+      fillSelect(municipalitySelect, [...new Set(allCompanies.map(c => c.municipality))], 'Все муниципалитеты');
+      fillSelect(ridTypeSelect, [...new Set(allCompanies.flatMap(c => c.items.map(i => i.type)))], 'Все типы');
+    }
+
+    function renderCompaniesList(companies) {
+      companiesList.innerHTML = '';
+      companies.forEach(c => { const div = document.createElement('div'); div.className = 'company-item'; const coordBadge = (!c.lat || !c.lon) ? ' <span class="badge">Нет координат</span>' : ''; div.innerHTML = `<strong>${escapeHtml(c.company)}</strong><div class="hint">${escapeHtml(c.address)}</div><span class="badge">${escapeHtml((LAYERS[c.layer] || LAYERS.other).label)}</span> <span class="badge">${c.items.length} объектов</span>${coordBadge}`; if (c.lat && c.lon) div.addEventListener('click', () => focusCompany(c.key)); companiesList.appendChild(div); });
+    }
+
+    function renderTable(rows) {
+      ridTableBody.innerHTML = '';
+      rows.forEach((r, idx) => { const tr = document.createElement('tr'); const sourceLink = safeUrl(r.details); const description = [r.description, r.supportProgram, r.comment].filter(Boolean).join('\n\n'); tr.innerHTML = `<td class="number-cell">${idx + 1}</td><td>${escapeHtml(r.layerName)}</td><td class="company-cell">${escapeHtml(r.company)}</td><td>${escapeHtml(r.ogrn)}</td><td>${escapeHtml(r.inn)}</td><td class="address-cell">${escapeHtml(r.address)}</td><td>${escapeHtml(r.title)}</td><td>${escapeHtml(r.regNumber)}</td><td>${escapeHtml(r.type)}</td><td>${escapeHtml(r.year)}</td><td>${escapeHtml([r.activity, r.okved, r.mpk].filter(Boolean).join(' / '))}</td><td>${escapeHtml(formatInteger(r.employees2024))}</td><td>${escapeHtml(formatMoney(r.revenue2024))}</td><td class="multiline">${formatMultiline(description)}</td><td>${sourceLink ? `<a href="${escapeHtml(sourceLink)}" target="_blank" rel="noopener">Открыть</a>` : ''}</td>`; ridTableBody.appendChild(tr); });
+    }
+
+    function focusCompany(key) { const c = allCompanies.find(x => x.key === key); const pm = placemarksByKey.get(key); if (!c || !pm) return; switchTab('mapTab'); map.setCenter([c.lat, c.lon], 12, { duration: 300 }); pm.balloon.open(); }
+
+    function applyFilters() { shownCompanies = allCompanies.filter(passesFilters); shownRows = buildRows(shownCompanies); renderMap(shownCompanies); renderCompaniesList(shownCompanies); renderTable(applyListSearch(shownRows)); updateStatus(); }
+
+    function applyListSearch(rows = shownRows) {
+      const query = normalizeText(ridSearchInput.value), selectedCompany = ridCompanySelect.value;
+      return rows.filter(r => { const text = normalizeText(`${r.layerName} ${r.company} ${r.shortName} ${r.fullName} ${r.ogrn} ${r.inn} ${r.address} ${r.contacts} ${r.title} ${r.regNumber} ${r.type} ${r.year} ${r.activity} ${r.okved} ${r.mpk} ${r.description} ${r.supportProgram} ${r.comment} ${r.employees2024} ${r.revenue2024}`); return (!query || text.includes(query)) && (!selectedCompany || r.companyKey === selectedCompany); });
+    }
+
+    function applyRidFilters() { const rows = applyListSearch(shownRows); renderTable(rows); updateRidStatus(rows); }
+    function updateStatus() { const onMap = shownCompanies.filter(c => c.lat && c.lon).length; statusBlock.textContent = `Всего организаций: ${allCompanies.length}\nВсего записей / объектов: ${allRows.length}\nПоказано организаций: ${shownCompanies.length}\nПоказано на карте: ${onMap}\nПоказано записей: ${shownRows.length}`; updateRidStatus(applyListSearch(shownRows)); }
+    function updateRidStatus(rows = shownRows) { ridStatus.textContent = `Всего записей в базе: ${allRows.length}\nПоказано записей: ${rows.length}`; }
+
+    function rowsForExport() { return applyListSearch(shownRows).map(r => ({ 'Слой': r.layerName, 'Организация': r.company, 'Краткое наименование': r.shortName, 'Полное наименование': r.fullName, 'ОГРН': r.ogrn, 'ИНН': r.inn, 'Муниципалитет': r.municipality, 'Адрес': r.address, 'Контактные данные': r.contacts, 'Название РИД / объект': r.title, 'Номер регистрации': r.regNumber, 'Тип': r.type, 'Год': r.year, 'Вид деятельности / отрасль': r.activity, 'ОКВЭД': r.okved, 'МПК': r.mpk, 'Работники, 2024': r.employees2024, 'Доходы, 2024, RUB': r.revenue2024, 'Описание компании': r.description, 'Программа поддержки': r.supportProgram, 'Комментарий': r.comment, 'Сайт': r.site, 'Ссылка': r.details, 'Источник данных': r.source })); }
+    function downloadCSV(filename) { const rows = rowsForExport(); const headers = Object.keys(rows[0] || { 'Нет данных': '' }); const csv = [headers.join(';'), ...rows.map(row => headers.map(h => `"${String(row[h] ?? '').replaceAll('"','""')}"`).join(';'))].join('\n'); const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click(); URL.revokeObjectURL(a.href); }
+    function downloadXLSX(filename) { const ws = XLSX.utils.json_to_sheet(rowsForExport()); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Выборка'); XLSX.writeFile(wb, filename); }
+
+    function switchTab(tabId) { document.querySelectorAll('.tab-button').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId)); document.querySelectorAll('.tab-content').forEach(t => t.classList.toggle('active', t.id === tabId)); if (tabId === 'mapTab' && map) setTimeout(() => { map.container.fitToViewport(); map.setCenter(MAP_DEFAULT_CENTER, MAP_DEFAULT_ZOOM); }, 150); }
+
+    async function loadData() {
+      const response = await fetch(DATA_FILE + '?v=' + Date.now());
+      if (!response.ok) throw new Error(`Не удалось загрузить ${DATA_FILE}`);
+      const rows = await response.json();
+      if (!Array.isArray(rows)) throw new Error('Файл patents.json должен содержать JSON-массив записей');
+      const records = normalizeRawRecords(rows);
+      const grouped = groupByCompany(records);
+      statusBlock.textContent = 'Загрузка карты...';
+      allCompanies = grouped; allRows = buildRows(allCompanies); shownCompanies = allCompanies; shownRows = allRows;
+      renderFilters(); applyFilters();
+    }
+
+    document.querySelectorAll('.tab-button').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+    applyButton.addEventListener('click', applyFilters); searchInput.addEventListener('input', applyFilters); companySelect.addEventListener('change', applyFilters); municipalitySelect.addEventListener('change', applyFilters); ridTypeSelect.addEventListener('change', applyFilters); yearFromInput.addEventListener('input', applyFilters); yearToInput.addEventListener('input', applyFilters);
+    resetButton.addEventListener('click', () => { searchInput.value = ''; companySelect.value = ''; municipalitySelect.value = ''; ridTypeSelect.value = ''; yearFromInput.value = ''; yearToInput.value = ''; document.querySelectorAll('[data-layer-checkbox]').forEach(cb => cb.checked = true); applyFilters(); });
+    ridSearchInput.addEventListener('input', applyRidFilters); ridCompanySelect.addEventListener('change', applyRidFilters);
+    el('csvButton').addEventListener('click', () => downloadCSV('innovation_map_selection.csv')); el('xlsxButton').addEventListener('click', () => downloadXLSX('innovation_map_selection.xlsx')); el('csvListButton').addEventListener('click', () => downloadCSV('innovation_map_list.csv')); el('xlsxListButton').addEventListener('click', () => downloadXLSX('innovation_map_list.xlsx'));
+
+    ymaps.ready(async () => {
+      map = new ymaps.Map('map', { center: MAP_DEFAULT_CENTER, zoom: MAP_DEFAULT_ZOOM, controls: ['zoomControl', 'fullscreenControl', 'typeSelector'] }, { minZoom: 3, maxZoom: 18 });
+      clusterer = new ymaps.Clusterer({ preset: 'islands#blueClusterIcons', groupByCoordinates: false, clusterDisableClickZoom: false, clusterOpenBalloonOnClick: true });
+      map.geoObjects.add(clusterer); renderLayerControls();
+      try { await loadData(); } catch (error) { console.error(error); statusBlock.textContent = 'Ошибка загрузки данных: ' + error.message; ridStatus.textContent = 'Ошибка загрузки данных: ' + error.message; }
+    });
+  </script>
+</body>
+</html>
